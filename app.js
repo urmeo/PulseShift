@@ -45,7 +45,7 @@ function riskBand(p) {
   return { label: "Severe", cls: "severe" };
 }
 
-function recommend(input, hi, p, unsafe) {
+function recommend(p, unsafe) {
   if (unsafe) {
     return "Unsafe for outdoor activity — move indoors or reschedule.";
   }
@@ -88,10 +88,11 @@ function update() {
   $("risk").className = "risk " + b.cls;
   $("pct").textContent = unsafe ? "⚠" : Math.round(p * 100) + "%";
   $("band").textContent = unsafe ? "unsafe to exercise outdoors" : b.label + " suppression risk";
-  $("reco").textContent = recommend(input, hi, p, unsafe);
+  $("reco").textContent = recommend(p, unsafe);
   $("detail").textContent = unsafe
     ? `Heat index ${Math.round(hi)}°F · AQI ${input.aqi} · model suppression ${Math.round(p * 100)}%`
     : `Heat index ${Math.round(hi)}°F · AQI ${input.aqi}`;
+  $("besthour").textContent = "";
 }
 
 function dcHourWeekend(iso) {
@@ -105,6 +106,7 @@ function dcHourWeekend(iso) {
 }
 
 function bestSafeHour(periods, aqi) {
+  if (aqi >= M.safety.aqi_unsafe) return null;   // unsafe air all day
   let best = null;
   for (const p of periods.slice(0, 24)) {
     const { hour, weekend } = dcHourWeekend(p.startTime);
@@ -112,7 +114,7 @@ function bestSafeHour(periods, aqi) {
     const rh = p.relativeHumidity && p.relativeHumidity.value != null ? p.relativeHumidity.value : 50;
     const pop = p.probabilityOfPrecipitation && p.probabilityOfPrecipitation.value != null ? p.probabilityOfPrecipitation.value : 0;
     const hi = heatIndex(p.temperature, rh);
-    if (hi >= M.safety.heat_unsafe_f || aqi >= M.safety.aqi_unsafe) continue;
+    if (hi >= M.safety.heat_unsafe_f) continue;
     const r = risk({ temp: p.temperature, humidity: rh, aqi, wind: parseInt(p.windSpeed, 10) || 0, precip: (pop / 100) * 0.1, hour, weekend, smoke: false });
     if (!best || r < best.risk) best = { hour, risk: r };
   }
@@ -131,10 +133,13 @@ async function liveWeather() {
     $("wind").value = parseInt(now.windSpeed, 10) || $("wind").value;
     btn.textContent = "Live DC weather loaded";
     update();
-    const best = bestSafeHour(hourly.properties.periods, Number($("aqi").value));
+    const aqi = Number($("aqi").value);
+    const best = bestSafeHour(hourly.properties.periods, aqi);
     $("besthour").textContent = best
       ? `Lowest-risk safe daytime hour ahead: ${String(best.hour).padStart(2, "0")}:00 (~${Math.round(best.risk * 100)}% risk, est.)`
-      : "No safe daytime hour in the forecast window — consider indoors.";
+      : aqi >= M.safety.aqi_unsafe
+        ? "Air quality is unsafe all day — stay indoors."
+        : "No safe daytime hour in the forecast window — consider indoors.";
   } catch {
     btn.textContent = "Live weather unavailable — enter manually";
   }
