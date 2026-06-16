@@ -16,7 +16,7 @@ What makes a forecast usable isn't raw accuracy, it's calibration. Class-weighti
 
 <img src="paper/figures/reliability.png" alt="Reliability diagram: served model tracks the ideal line; the balanced model is overconfident" width="440">
 
-The headline finding is about air quality, and it's a cautionary one: the effect of pollution on activity depends entirely on how you measure it. The naive association looks *protective*. A season-controlled daily regression finds a large negative effect. But a within-day fixed-effects estimate, which holds season and weather fixed, collapses it toward zero. That gap is seasonal confounding, and only hourly air quality exposes it.
+The headline finding is about air quality, and it's a cautionary one: the effect of pollution on this mobility proxy depends entirely on how you measure it. The naive association looks *protective*. A season-controlled daily regression finds a large negative effect. But a within-day fixed-effects estimate, which holds season and weather fixed, collapses it toward zero. That gap is seasonal confounding, and only hourly air quality exposes it.
 
 <img src="paper/figures/aqi_identification.png" alt="Forest plot: the air-quality effect shrinks from a large negative value to near zero as identification tightens" width="560">
 
