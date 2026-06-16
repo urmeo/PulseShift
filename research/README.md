@@ -9,6 +9,9 @@ Python 3.9 or newer.
 
 ## Installation
 
+From the repository root, `make all` builds the environment, runs the analysis, exports the model, and
+runs the tests in one step. To set up manually:
+
 ```
 python3 -m venv ../.venv
 ../.venv/bin/pip install -r requirements.txt
@@ -42,7 +45,8 @@ All sources are public and downloaded by the pipeline; nothing is hand-edited.
 | --- | --- |
 | Capital Bikeshare trip history | Hourly outdoor-activity volume |
 | NOAA Local Climatological Data (Reagan National) | Hourly temperature, humidity, wind, visibility, precipitation, smoke/haze |
-| EPA AirData daily AQI (District of Columbia) | Daily air quality |
+| CAMS hourly air quality (via Open-Meteo, no key) | Hourly US AQI and PM2.5 |
+| EPA AirData daily AQI (District of Columbia) | Daily air-quality anchor and smoke cross-check |
 
 Activity (DST-aware local time) and weather (local standard time) are aligned on UTC; daily AQI is
 joined on the local calendar day. The suppression outcome is constructed, since no public dataset
@@ -53,12 +57,13 @@ weather-free `season x daytype x hour` climatology, fit on the training years on
 
 | Path | Purpose |
 | --- | --- |
-| `pulseshift/ingest.py` | Download and assemble the three source series |
+| `pulseshift/ingest.py` | Download and assemble the source series |
 | `pulseshift/panel.py` | Merge, label suppression, write the analysis panel |
 | `pulseshift/features.py` | Heat index, temperature hinges, temporal encodings |
 | `pulseshift/models.py` | Climatology baseline, logistic, and gradient-boosting models |
 | `pulseshift/calibration.py` | Probability calibration and reliability |
 | `pulseshift/evaluation.py` | Discrimination and calibration metrics, bootstrap CIs |
+| `pulseshift/airquality.py` | Air-quality identification ladder (marginal, between-day, within-day) |
 | `pulseshift/ram.py` | Time-shift adaptation and Recovered Active Minutes |
 | `pulseshift/decision.py` | Decision-curve net benefit |
 | `pulseshift/equity.py` | Subgroup stratification |
