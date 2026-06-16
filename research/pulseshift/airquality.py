@@ -1,10 +1,13 @@
-"""Air-quality identification: marginal, between-day, and within-day effects."""
+"""Air-quality identification: marginal, between-day, within-day, and power."""
 
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 
 CONTROLS = ["temp_f", "precip_in", "wind_mph", "humidity"]
+
+# two-sided 0.05 detectability multipliers
+Z80, Z90 = 2.802, 3.242
 
 
 def _ride_ratio(work):
@@ -19,7 +22,7 @@ def between_day_effect(work, controls=CONTROLS, n_boot=1000, seed=0):
     """Daily ride ratio on daily-peak AQI, controlling for weather and season."""
     df = _ride_ratio(work)
     g = df.groupby("day").agg(
-        ride_ratio=("rides_total", "sum"),
+        rides=("rides_total", "sum"),
         expected=("expected_rides", "sum"),
         aqi=("aqi", "max"),
         temp_f=("temp_f", "mean"),
@@ -30,7 +33,7 @@ def between_day_effect(work, controls=CONTROLS, n_boot=1000, seed=0):
         season=("season", "first"),
     )
     g = g[g["expected"] > 0]
-    y = (g["ride_ratio"] / g["expected"]).to_numpy()
+    y = (g["rides"] / g["expected"]).to_numpy()
     X = pd.concat(
         [
             g[["aqi", *controls, "is_weekend"]],
@@ -44,9 +47,7 @@ def between_day_effect(work, controls=CONTROLS, n_boot=1000, seed=0):
 def within_day_effect(work, controls=CONTROLS, n_boot=1000, seed=0):
     """Hourly ride ratio on AQI with day and hour fixed effects (intraday)."""
     df = _ride_ratio(work)
-    varies = (
-        df.groupby("day")["aqi"].transform("nunique") > 1
-    )  # drop flat-fallback days
+    varies = df.groupby("day")["aqi"].transform("nunique") > 1  # drop flat days
     df = df[varies].reset_index(drop=True)
     reg = ["aqi", *controls]
     hours = pd.get_dummies(df["hour"], prefix="h", drop_first=True).astype(float)
@@ -60,7 +61,7 @@ def within_day_effect(work, controls=CONTROLS, n_boot=1000, seed=0):
 
 
 def _ols_ci(X, y, k, n_unit, n_boot, seed, cluster=None, scale=50):
-    """Coefficient k (scaled per +50 AQI) with a percentile bootstrap CI."""
+    """Coefficient k per +50 AQI, with bootstrap CI, SE, and detectable effect."""
     point = float(LinearRegression().fit(X, y).coef_[k] * scale)
     rng = np.random.default_rng(seed)
     vals = []
@@ -77,17 +78,22 @@ def _ols_ci(X, y, k, n_unit, n_boot, seed, cluster=None, scale=50):
                 [groups[keys[i]] for i in rng.integers(0, len(keys), len(keys))]
             )
             vals.append(LinearRegression().fit(X[s], y[s]).coef_[k])
-    lo, hi = np.percentile(np.array(vals) * scale, [2.5, 97.5])
+    arr = np.array(vals) * scale
+    lo, hi = np.percentile(arr, [2.5, 97.5])
+    se = float(arr.std(ddof=1))
     return {
         "effect_per_50": round(point, 3),
         "ci_low": round(float(lo), 3),
         "ci_high": round(float(hi), 3),
+        "se": round(se, 3),
+        "mde80": round(Z80 * se, 3),
+        "mde90": round(Z90 * se, 3),
         "n": int(n_unit),
     }
 
 
-def smoke_episodes(work, aqi_thresh=100):
-    """Ride ratio on high-AQI hours vs same season-hour clean baseline."""
+def smoke_episodes(work, aqi_thresh=100, n_boot=1000, seed=0):
+    """High-AQI hours vs same season-hour clean baseline, day-clustered CI."""
     df = _ride_ratio(work)
     df["polluted"] = df["aqi"] >= aqi_thresh
     base = (
@@ -96,12 +102,31 @@ def smoke_episodes(work, aqi_thresh=100):
         .mean()
         .rename("clean_ratio")
     )
-    hot = df[df["polluted"]].merge(base, on=["season", "hour"], how="left")
-    hot["rel"] = hot["ride_ratio"] / hot["clean_ratio"]
+    hot = (
+        df[df["polluted"]]
+        .merge(base, on=["season", "hour"], how="left")
+        .dropna(subset=["clean_ratio"])
+    )
+    rel = (hot["ride_ratio"] / hot["clean_ratio"]).to_numpy()
+
+    rng = np.random.default_rng(seed)
+    days = hot["day"].to_numpy()
+    members = [np.where(days == d)[0] for d in np.unique(days)]
+    boot = [
+        rel[
+            np.concatenate(
+                [members[i] for i in rng.integers(0, len(members), len(members))]
+            )
+        ].mean()
+        for _ in range(n_boot)
+    ]
+    lo, hi = np.percentile(boot, [2.5, 97.5])
     return {
         "aqi_threshold": aqi_thresh,
         "polluted_hours": int(len(hot)),
-        "polluted_days": int(df.loc[df["polluted"], "day"].nunique()),
-        "ride_ratio_vs_clean": round(float(hot["rel"].mean()), 3),
+        "polluted_days": int(hot["day"].nunique()),
+        "ride_ratio_vs_clean": round(float(rel.mean()), 3),
+        "ci_low": round(float(lo), 3),
+        "ci_high": round(float(hi), 3),
         "median_aqi_polluted": round(float(df.loc[df["polluted"], "aqi"].median()), 1),
     }
