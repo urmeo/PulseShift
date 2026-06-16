@@ -8,9 +8,10 @@ Heat, cold, rain, and wildfire smoke all disrupt outdoor physical activity, and 
 particular is a growing concern as wildfire smoke reaches cities that rarely saw it. But most studies
 that link air quality to activity rely on *daily* pollution measures, and daily air quality is
 strongly confounded by season: the dirtiest days are hot summer days, exactly when outdoor activity
-peaks. We ask whether the air-quality–activity association survives honest identification. Using three
-public sources for Washington DC, 2022–2024 (Capital Bikeshare volumes, NOAA weather, and hourly air
-quality), we treat the question as both an estimation problem and a calibrated forecasting problem.
+peaks. We ask whether the air-quality association with outdoor activity — which we proxy with municipal
+bike-share ridership, i.e. outdoor mobility — survives honest identification. Using three public sources
+for Washington DC, 2022–2024 (Capital Bikeshare volumes, NOAA weather, and hourly air quality), we treat
+the question as both an estimation problem and a calibrated forecasting problem.
 We label each active city-hour suppressed when ridership falls below half of a weather-free, leak-free
 climatology, and we replace daily AQI with hourly AQI so that pollution can be identified *within* a
 day rather than across seasons. Three findings follow. First, the air-quality effect is an artifact of
@@ -18,8 +19,9 @@ how it is measured: the naive marginal association is *protective*, a season- an
 between-day regression gives a large negative effect (−10.9 ride-ratio points per +50 AQI, 95% CI −14.6
 to −7.3), but the rigorous within-day fixed-effects estimate collapses to −2.4 points (95% CI −5.9 to
 +1.1), and high-AQI hours matched to clean same-season hours show no reduction (1.01×, 95% CI
-0.94–1.09). The within-day design can detect effects above ~5 points at 80% power, so this is a
-bounded-small effect, not merely an underpowered null. Second, air
+0.94–1.09). This is not lost power: the within-day estimate is as precise as the between-day one (SE 1.8
+vs 1.9) and would detect a between-day-sized effect with near-certainty, so the collapse reflects
+de-confounding. Second, air
 quality adds nothing to forecasting once weather is included (ΔAUROC and ΔAUPRC ≈ 0): weather is the
 entire signal. Third, calibration, not discrimination, decides whether the forecast is usable:
 class-weighting, a common default, leaves the model badly over-confident (Brier 0.13, ECE 0.25) while
@@ -29,8 +31,8 @@ an unsafe hour, and the framework transfers to Seoul (AUROC 0.87). The lesson is
 air-quality effect reported across this literature is largely seasonal confounding, and only hourly,
 within-day identification corrects it.
 
-**Keywords:** physical activity; air quality; wildfire smoke; confounding; fixed effects; calibration;
-decision curve analysis.
+**Keywords:** outdoor mobility; bike-share; physical activity; air quality; wildfire smoke; confounding;
+fixed effects; calibration; decision curve analysis.
 
 ## 1. Introduction
 
@@ -206,9 +208,11 @@ at face value, pollution looks *good* for activity. Controlling for weather and 
 days flips the sign to a large negative effect (−10.9 points per +50 AQI). But that estimate is still
 identified from between-day variation, and when day fixed effects absorb every day-level confounder —
 on the 881 days that carry genuine intraday AQI variation — the effect collapses to −2.4 points with a
-CI that crosses zero (Figure `aqi_identification`). This is not merely an underpowered null: the
-within-day design detects effects above ~5 points per +50 AQI at 80% power (SE 1.8), so the true
-intraday effect is bounded small. Matching high-AQI hours (AQI ≥ 100; 669 hours over 101 days, median
+CI that crosses zero (Figure `aqi_identification`). This is not lost power: the within-day SE (1.8
+points) is no larger than the between-day SE (1.9), and the design's 80%-power threshold (~5 points)
+sits well below the −10.9-point between-day estimate, so a between-day-sized effect would have shown up
+intraday — its disappearance reflects de-confounding, not insufficient data. Matching high-AQI hours
+(AQI ≥ 100; 669 hours over 101 days, median
 AQI 118) to clean hours of the same season and hour shows no reduction (ride ratio 1.01× of clean, 95%
 CI 0.94–1.09, day-clustered), and the null holds at AQI thresholds of 80, 100, and 120. The honest
 reading is that pollution's effect on this mobility proxy is, at most, small, and that the large effects
@@ -284,7 +288,7 @@ Public data and pinned dependencies. `run_analysis.py` regenerates every figure 
 committed panel, `build_data.py` rebuilds that panel from source, `train_model.py` exports the served
 model, and `validate_seoul.py` runs the external check; `make all` runs setup, analysis, model export,
 and tests (the committed panel makes the data step optional). The primary specification, and the line
-between confirmatory and exploratory results, are fixed in advance in `paper/preregistration.md`.
+between confirmatory and exploratory results, are declared in `paper/preregistration.md`.
 `pytest` (in CI) guards the heat index, the leak-free label, the within-day estimator, the safety
 policy, and model-export parity. See `research/README.md`.
 
