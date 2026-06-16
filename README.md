@@ -16,7 +16,7 @@ it also reports the lowest-risk safe hour for the day.
 
 ## Results
 
-Trained on Washington DC, 2022–2024, and evaluated out-of-time on a held-out 2024.
+Washington DC, 2022–2024. Metrics come from a leak-free out-of-time split (train 2022–2023, test 2024); the served model is then refit on all three years.
 
 Calibration, not raw accuracy, is what makes a forecast usable. Class-weighting the model leaves it
 badly overconfident; the unweighted model the app serves stays on the diagonal.
@@ -34,7 +34,7 @@ confounding, and only hourly air quality exposes it.
 - Features lift forecast AUROC from 0.69 (a season-aware baseline) to 0.94; gradient boosting does not beat it.
 - The served model is well calibrated out-of-time (Brier 0.021, ECE 0.044).
 - **Air quality adds nothing to the forecast beyond weather** (ΔAUROC ≈ 0): cold and rain, not smoke, dominate suppression here.
-- The daily air-quality effect (−10.9 ride-ratio points per +50 AQI) collapses to −2.3 (95% CI −5.5 to +1.0) under within-day identification.
+- The daily air-quality effect (−10.9 ride-ratio points per +50 AQI) collapses to −2.4 (95% CI −5.9 to +1.1) under within-day identification.
 - A safety-constrained time-shift policy recovers up to ~37% of otherwise-lost activity (an upper bound) while never recommending an unsafe hour.
 - The same pipeline reaches AUROC 0.87 on a second city, Seoul.
 
@@ -82,7 +82,7 @@ The full pipeline, paper, and tests live in [`research/`](research/) and [`paper
 ## Reproduce
 
 ```
-make all       # venv, panel, analysis, model export, tests
+make all       # venv, analysis, model export, tests
 ```
 
 Or step by step, from `research/`: see [`research/README.md`](research/README.md). The processed panel
