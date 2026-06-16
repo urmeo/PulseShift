@@ -36,7 +36,9 @@ def rider_burden(panel):
     for kind, col in [("member", "rides_member"), ("casual", "rides_casual")]:
         expected = _expected_rides(panel, value=col)
         active = expected >= config.EXPECTED_FLOOR
-        suppressed = (panel[col].to_numpy() < config.SUPPRESSION_RATIO * expected) & active
+        suppressed = (
+            panel[col].to_numpy() < config.SUPPRESSION_RATIO * expected
+        ) & active
         rows.append(
             {
                 "rider_type": kind,

@@ -10,7 +10,12 @@ def _expected_rides(df, value="rides_total"):
     """Train-fit shape and volume level; test years carry the last train year (leak-free)."""
     keys = ["season", "daytype", "hour"]
     train = df[df["year"].isin(config.TRAIN_YEARS)]
-    shape = train.groupby(keys)[value].median().reindex(pd.MultiIndex.from_frame(df[keys])).to_numpy()
+    shape = (
+        train.groupby(keys)[value]
+        .median()
+        .reindex(pd.MultiIndex.from_frame(df[keys]))
+        .to_numpy()
+    )
     year_level = train.groupby("year")[value].mean() / train[value].mean()
     last_train = year_level.loc[max(config.TRAIN_YEARS)]
     level = df["year"].map(lambda y: year_level.get(y, last_train)).to_numpy()
@@ -32,11 +37,20 @@ def build_panel(write=True):
     for frame in (bikes, weather):
         frame["ts_utc"] = pd.to_datetime(frame["ts_utc"])
 
-    panel = bikes.merge(weather, on="ts_utc", how="inner").sort_values("ts_utc").reset_index(drop=True)
+    panel = (
+        bikes.merge(weather, on="ts_utc", how="inner")
+        .sort_values("ts_utc")
+        .reset_index(drop=True)
+    )
     for col in ["temp_f", "humidity", "wind_mph", "visibility_mi"]:
         panel[col] = panel[col].interpolate(limit=3).ffill(limit=3).bfill(limit=3)
 
-    panel["ts_local"] = panel["ts_utc"].dt.tz_localize("UTC").dt.tz_convert(config.LOCAL_TZ).dt.tz_localize(None)
+    panel["ts_local"] = (
+        panel["ts_utc"]
+        .dt.tz_localize("UTC")
+        .dt.tz_convert(config.LOCAL_TZ)
+        .dt.tz_localize(None)
+    )
     panel["date"] = panel["ts_local"].dt.normalize()
     panel = panel.merge(aqi[["date", "aqi"]], on="date", how="left")
     panel["aqi"] = panel["aqi"].ffill().bfill()

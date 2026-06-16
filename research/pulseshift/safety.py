@@ -7,12 +7,9 @@ def audit(reco, risk_col="risk"):
     shifts = reco[reco["action"] == "shift"]
     risk_drop = shifts[risk_col] - shifts["chosen_risk"]
 
-    unsafe_target = (
-        (reco["action"] != "cancel")
-        & (
-            (reco["target_heat_index_f"] >= config.HEAT_UNSAFE_F)
-            | (reco["target_aqi"] >= config.AQI_UNSAFE)
-        )
+    unsafe_target = (reco["action"] != "cancel") & (
+        (reco["target_heat_index_f"] >= config.HEAT_UNSAFE_F)
+        | (reco["target_aqi"] >= config.AQI_UNSAFE)
     )
     return {
         "n_shifts": int(len(shifts)),

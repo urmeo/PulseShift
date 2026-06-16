@@ -37,12 +37,22 @@ def load_bikeshare():
 
     frames = []
     for ym in config.ym_list():
-        path = _download(config.BIKESHARE_URL.format(ym=ym), config.RAW / f"cabi_{ym}.zip")
+        path = _download(
+            config.BIKESHARE_URL.format(ym=ym), config.RAW / f"cabi_{ym}.zip"
+        )
         with zipfile.ZipFile(path) as archive:
-            members = [n for n in archive.namelist() if n.lower().endswith(".csv") and "macosx" not in n.lower()]
+            members = [
+                n
+                for n in archive.namelist()
+                if n.lower().endswith(".csv") and "macosx" not in n.lower()
+            ]
             for name in members:
                 with archive.open(name) as handle:
-                    df = pd.read_csv(handle, usecols=["started_at", "member_casual"], low_memory=False)
+                    df = pd.read_csv(
+                        handle,
+                        usecols=["started_at", "member_casual"],
+                        low_memory=False,
+                    )
                 frames.append(df)
 
     trips = pd.concat(frames, ignore_index=True)
@@ -50,12 +60,16 @@ def load_bikeshare():
     local = started.dt.tz_localize(
         config.LOCAL_TZ, ambiguous="NaT", nonexistent="shift_forward"
     )
-    trips = trips.assign(ts_utc=local.dt.tz_convert("UTC").dt.floor("h")).dropna(subset=["ts_utc"])
+    trips = trips.assign(ts_utc=local.dt.tz_convert("UTC").dt.floor("h")).dropna(
+        subset=["ts_utc"]
+    )
     trips["ts_utc"] = trips["ts_utc"].dt.tz_localize(None)
 
     pivot = (
         trips.assign(member_casual=trips["member_casual"].fillna("unknown"))
-        .pivot_table(index="ts_utc", columns="member_casual", aggfunc="size", fill_value=0)
+        .pivot_table(
+            index="ts_utc", columns="member_casual", aggfunc="size", fill_value=0
+        )
         .rename(columns={"member": "rides_member", "casual": "rides_casual"})
     )
     pivot["rides_total"] = pivot.sum(axis=1)
@@ -93,11 +107,20 @@ def load_weather():
     stamp = pd.to_datetime(lcd["DATE"], errors="coerce")
     # LCD is Local Standard Time (no DST); rides use wall-clock local.
     # Both resolve to true UTC, so the hourly join pairs simultaneous conditions.
-    lcd["ts_utc"] = stamp.dt.tz_localize("Etc/GMT+5").dt.tz_convert("UTC").dt.tz_localize(None)
+    lcd["ts_utc"] = (
+        stamp.dt.tz_localize("Etc/GMT+5").dt.tz_convert("UTC").dt.tz_localize(None)
+    )
     lcd["smoke_haze"] = (
-        lcd["HourlyPresentWeatherType"].astype(str).str.contains("HZ|FU|smoke|haze", case=False, na=False)
+        lcd["HourlyPresentWeatherType"]
+        .astype(str)
+        .str.contains("HZ|FU|smoke|haze", case=False, na=False)
     ).astype(int)
-    for col in ["HourlyDryBulbTemperature", "HourlyRelativeHumidity", "HourlyWindSpeed", "HourlyVisibility"]:
+    for col in [
+        "HourlyDryBulbTemperature",
+        "HourlyRelativeHumidity",
+        "HourlyWindSpeed",
+        "HourlyVisibility",
+    ]:
         lcd[col] = _to_numeric(lcd[col])
     # precipitation: trace/blank read as 0
     lcd["HourlyPrecipitation"] = _to_numeric(lcd["HourlyPrecipitation"]).fillna(0)
@@ -131,7 +154,10 @@ def load_aqi():
     use = ["State Name", "Date", "AQI"]
     parts = []
     for year in config.YEARS:
-        path = _download(config.EPA_DAILY_AQI_URL.format(year=year), config.RAW / f"epa_aqi_{year}.zip")
+        path = _download(
+            config.EPA_DAILY_AQI_URL.format(year=year),
+            config.RAW / f"epa_aqi_{year}.zip",
+        )
         df = pd.read_csv(path, usecols=use, compression="zip")
         parts.append(df[df["State Name"] == "District Of Columbia"])
 

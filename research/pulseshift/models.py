@@ -35,7 +35,12 @@ def build_logistic(balanced=True):
     return Pipeline(
         [
             ("scale", StandardScaler()),
-            ("clf", LogisticRegression(max_iter=2000, class_weight="balanced" if balanced else None)),
+            (
+                "clf",
+                LogisticRegression(
+                    max_iter=2000, class_weight="balanced" if balanced else None
+                ),
+            ),
         ]
     )
 

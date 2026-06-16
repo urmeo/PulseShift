@@ -12,7 +12,9 @@ FIGURES = ROOT.parent / "paper" / "figures"
 TABLES = ROOT.parent / "paper" / "tables"
 
 # Capital Bikeshare public S3
-BIKESHARE_URL = "https://s3.amazonaws.com/capitalbikeshare-data/{ym}-capitalbikeshare-tripdata.zip"
+BIKESHARE_URL = (
+    "https://s3.amazonaws.com/capitalbikeshare-data/{ym}-capitalbikeshare-tripdata.zip"
+)
 
 # NOAA Local Climatological Data, Reagan National (DCA), WBAN 13743
 LCD_STATION = "72405013743"
@@ -24,8 +26,8 @@ EPA_DAILY_AQI_URL = "https://aqs.epa.gov/aqsweb/airdata/daily_aqi_by_county_{yea
 LOCAL_TZ = "America/New_York"
 
 # Suppression label
-EXPECTED_FLOOR = 20          # min typical rides to call an hour "plausibly active"
-SUPPRESSION_RATIO = 0.5      # observed below half of expected -> suppressed
+EXPECTED_FLOOR = 20  # min typical rides to call an hour "plausibly active"
+SUPPRESSION_RATIO = 0.5  # observed below half of expected -> suppressed
 SENSITIVITY_RATIOS = (0.4, 0.5, 0.6)
 
 # Temporal back-testing
@@ -33,11 +35,11 @@ TRAIN_YEARS = (2022, 2023)
 TEST_YEAR = 2024
 
 # Adaptation + safety
-SHIFT_WINDOW_H = 3           # hours either side for a time shift
-HEAT_UNSAFE_F = 103.0        # heat index severe threshold
-AQI_UNSAFE = 150             # unhealthy boundary
-MIN_RISK_BENEFIT = 0.05      # only shift when it meaningfully lowers risk
-MEAN_RIDE_MIN = 13.0         # Capital Bikeshare typical ride length
+SHIFT_WINDOW_H = 3  # hours either side for a time shift
+HEAT_UNSAFE_F = 103.0  # heat index severe threshold
+AQI_UNSAFE = 150  # unhealthy boundary
+MIN_RISK_BENEFIT = 0.05  # only shift when it meaningfully lowers risk
+MEAN_RIDE_MIN = 13.0  # Capital Bikeshare typical ride length
 
 
 def ym_list():

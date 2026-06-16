@@ -25,7 +25,7 @@ def recommend(panel, risk_col="risk", window=config.SHIFT_WINDOW_H):
         air = day["aqi"].to_numpy()
         for i in range(len(day)):
             near = np.abs(hours - hours[i]) <= window
-            feasible = near & safe       # stay within the safe envelope
+            feasible = near & safe  # stay within the safe envelope
             if not feasible.any():
                 actions.append("cancel")
                 targets.append(np.nan)
@@ -36,9 +36,9 @@ def recommend(panel, risk_col="risk", window=config.SHIFT_WINDOW_H):
             cand = np.where(feasible)[0]
             best = cand[np.argmin(risk[cand])]
             if not safe[i]:
-                action = "shift"               # must leave an unsafe hour
+                action = "shift"  # must leave an unsafe hour
             elif best == i or (risk[i] - risk[best]) < config.MIN_RISK_BENEFIT:
-                action, best = "keep", i       # benefit too small to bother
+                action, best = "keep", i  # benefit too small to bother
             else:
                 action = "shift"
             actions.append(action)
@@ -65,7 +65,9 @@ def ram_table(reco, risk_col="risk"):
     lost = float((expected * reco[risk_col].to_numpy()).sum())
     total = float(recovered.sum())
     shifts = reco[reco["action"] == "shift"]
-    distinct_slots = int(shifts.groupby(["day", "target_hour"]).ngroups) if len(shifts) else 0
+    distinct_slots = (
+        int(shifts.groupby(["day", "target_hour"]).ngroups) if len(shifts) else 0
+    )
     return {
         "recovered_rides": total,
         "recovered_minutes": total * config.MEAN_RIDE_MIN,

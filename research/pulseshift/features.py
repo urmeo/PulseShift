@@ -24,10 +24,16 @@ def heat_index_f(temp_f, humidity):
 
 
 def season_of(month):
-    return pd.cut(
-        month, bins=[0, 2, 5, 8, 11, 12], labels=["winter", "spring", "summer", "fall", "winter2"],
-        ordered=False,
-    ).astype(str).str.replace("winter2", "winter")
+    return (
+        pd.cut(
+            month,
+            bins=[0, 2, 5, 8, 11, 12],
+            labels=["winter", "spring", "summer", "fall", "winter2"],
+            ordered=False,
+        )
+        .astype(str)
+        .str.replace("winter2", "winter")
+    )
 
 
 def add_temporal(df, ts_col="ts_local"):
