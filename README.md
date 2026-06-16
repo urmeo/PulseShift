@@ -50,7 +50,7 @@ The full pipeline, paper, and tests live in [`research/`](research/) and [`paper
 | --- | --- |
 | App | Vanilla HTML, CSS, and JavaScript — zero dependencies, static-hostable |
 | Model | scikit-learn logistic regression, exported to JSON and run in the browser |
-| Pipeline | Python, pandas, scikit-learn, scipy, matplotlib |
+| Pipeline | Python, pandas, NumPy, scikit-learn, matplotlib |
 | Data | Capital Bikeshare, NOAA Local Climatological Data, EPA AirData, CAMS hourly air quality (all public) |
 | Quality | pytest, GitHub Actions CI, bootstrap confidence intervals, decision-curve analysis |
 
