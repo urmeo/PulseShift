@@ -61,7 +61,7 @@
     "aqi_unsafe": 150
   },
   "meta": {
-    "model_version": "1.2.0",
+    "model_version": "1.0.0",
     "trained_on": "Washington DC, Capital Bikeshare + NOAA + EPA/CAMS hourly AQI, 2022-2024",
     "active_hours": 24354,
     "auroc_2024": 0.936,

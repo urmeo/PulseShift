@@ -32,7 +32,7 @@ def main():
             "aqi_unsafe": config.AQI_UNSAFE,
         },
         "meta": {
-            "model_version": "1.2.0",
+            "model_version": "1.0.0",
             "trained_on": "Washington DC, Capital Bikeshare + NOAA + EPA/CAMS hourly AQI, 2022-2024",
             "active_hours": int(len(work)),
             "auroc_2024": round(float(roc_auc_score(test["suppressed"], p)), 3),

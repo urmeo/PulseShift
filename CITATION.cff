@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use PulseShift, please cite it as below."
 type: software
 title: "PulseShift: Calibrated Forecasting of Weather-Driven Activity Suppression and Hourly Identification of Air-Quality Effects"
-version: 0.2.0
+version: 1.0.0
 date-released: 2026-06-17
 url: "https://github.com/urme-b/PulseShift"
 repository-code: "https://github.com/urme-b/PulseShift"
