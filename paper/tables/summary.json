@@ -68,20 +68,20 @@
   ],
   "served_ci": {
     "auroc": [
-      0.919,
-      0.954
+      0.9,
+      0.967
     ],
     "auprc": [
-      0.416,
-      0.568
+      0.319,
+      0.638
     ],
     "brier": [
-      0.019,
-      0.023
+      0.017,
+      0.026
     ],
     "ece": [
-      0.041,
-      0.047
+      0.036,
+      0.052
     ]
   },
   "ram": {
@@ -119,10 +119,10 @@
       "n": 1096
     },
     "within_day": {
-      "effect_per_50": -0.023,
-      "ci_low": -0.055,
-      "ci_high": 0.01,
-      "n": 1096
+      "effect_per_50": -0.024,
+      "ci_low": -0.059,
+      "ci_high": 0.011,
+      "n": 881
     },
     "episodes": {
       "aqi_threshold": 100,
@@ -132,6 +132,16 @@
       "median_aqi_polluted": 118.0
     }
   },
+  "aqi_coefficient": [
+    {
+      "aqi_source": "hourly (served)",
+      "std_coefficient": 0.03575435319748353
+    },
+    {
+      "aqi_source": "daily",
+      "std_coefficient": -0.03859389487981595
+    }
+  ],
   "ablation": [
     {
       "features": "temporal",
