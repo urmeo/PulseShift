@@ -44,6 +44,10 @@ def between_day_effect(work, controls=CONTROLS, n_boot=1000, seed=0):
 def within_day_effect(work, controls=CONTROLS, n_boot=1000, seed=0):
     """Hourly ride ratio on AQI with day and hour fixed effects (intraday)."""
     df = _ride_ratio(work)
+    varies = (
+        df.groupby("day")["aqi"].transform("nunique") > 1
+    )  # drop flat-fallback days
+    df = df[varies].reset_index(drop=True)
     reg = ["aqi", *controls]
     hours = pd.get_dummies(df["hour"], prefix="h", drop_first=True).astype(float)
     block = pd.concat([df[["ride_ratio", *reg]], hours], axis=1)
