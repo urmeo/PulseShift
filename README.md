@@ -41,6 +41,8 @@ A logistic regression predicts whether a given hour of outdoor cycling is suppre
 - **A feature ablation.** Temporal, then weather, then air quality, out-of-time, to isolate what air quality actually adds to the forecast (essentially nothing).
 - **Calibration as a first-class metric.** Brier score, log loss, expected calibration error, calibration slope, and a decision curve, compared across unweighted, class-weighted, and isotonic-recalibrated variants, not AUROC alone.
 - **Quantified uncertainty.** 95% confidence intervals by bootstrap, day-clustered for the within-day estimator and resampled over days for the policy metric.
+- **Power, not just a null.** The within-day design reports its minimum detectable effect, so the near-zero air-quality result is a bounded-small effect rather than an underpowered shrug.
+- **Sensitivity over silence.** Every analyst choice — label ratio, activity floor, shift window, AQI threshold — is swept and reported, with the spec and the confirmatory/exploratory split fixed in [`paper/preregistration.md`](paper/preregistration.md).
 
 The full pipeline, paper, and tests live in [`research/`](research/) and [`paper/`](paper/).
 
@@ -64,9 +66,9 @@ Or step by step, from `research/`: see [`research/README.md`](research/README.md
 
 ## Future scope
 
-- [ ] Validate against observed session data, not a ridership proxy
+- [ ] Validate the ridership proxy against measured activity (wearable or survey data)
 - [ ] Replace CAMS hourly AQI with ground-station hourly measurements
-- [ ] Extend to more cities and activities
+- [ ] Replicate the confounding result across cities (the pipeline is city-configurable)
 - [ ] Neighborhood-level equity analysis
 - [ ] Expose the forecast as a small API
 
