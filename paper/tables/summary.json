@@ -21,88 +21,88 @@
       "model": "Logistic (unweighted)",
       "n": 8204,
       "base_rate": 0.02462213554363725,
-      "auroc": 0.935497561253251,
-      "auprc": 0.4818776767215592,
-      "brier": 0.02178913315455114,
-      "log_loss": 0.09716585539126461,
-      "ece": 0.04597139914791476,
-      "cal_slope": 1.050322954884147,
-      "cal_intercept": -1.5065170380419377
+      "auroc": 0.9364861754858316,
+      "auprc": 0.4876567064728958,
+      "brier": 0.02124434622331166,
+      "log_loss": 0.09501976787797457,
+      "ece": 0.04414566124322463,
+      "cal_slope": 1.0623885000577356,
+      "cal_intercept": -1.4494462502277765
     },
     {
       "model": "Logistic (balanced)",
       "n": 8204,
       "base_rate": 0.02462213554363725,
-      "auroc": 0.939395411048228,
-      "auprc": 0.4482056084323369,
-      "brier": 0.12954307095755244,
-      "log_loss": 0.4334470568678495,
-      "ece": 0.25501756034351025,
-      "cal_slope": 0.6920191766721543,
-      "cal_intercept": -3.835072256343212
+      "auroc": 0.9397214434015259,
+      "auprc": 0.4475710869194758,
+      "brier": 0.12838951900107065,
+      "log_loss": 0.4304949651182874,
+      "ece": 0.2530832250642684,
+      "cal_slope": 0.6917300318305041,
+      "cal_intercept": -3.830293809265666
     },
     {
       "model": "Logistic (balanced) + calibration",
       "n": 8204,
       "base_rate": 0.02462213554363725,
-      "auroc": 0.9385558932049165,
-      "auprc": 0.46331250665824913,
-      "brier": 0.029169597666429434,
-      "log_loss": 0.11456331655712668,
-      "ece": 0.0646119585653153,
-      "cal_slope": 1.1937716524714854,
-      "cal_intercept": -1.8190856257033843
+      "auroc": 0.9395875041140704,
+      "auprc": 0.46764937139850526,
+      "brier": 0.028888795529592004,
+      "log_loss": 0.11392134995972812,
+      "ece": 0.06434336452830448,
+      "cal_slope": 1.2136577131531188,
+      "cal_intercept": -1.7842162850558507
     },
     {
       "model": "Gradient boosting",
       "n": 8204,
       "base_rate": 0.02462213554363725,
-      "auroc": 0.934519773521966,
-      "auprc": 0.5248098341043856,
-      "brier": 0.025129067812261627,
-      "log_loss": 0.09801123151458291,
-      "ece": 0.0459954333714391,
-      "cal_slope": 0.9785106383607045,
-      "cal_intercept": -1.74951120044887
+      "auroc": 0.9412318949965479,
+      "auprc": 0.525255687642823,
+      "brier": 0.024991342260602414,
+      "log_loss": 0.09678367260652403,
+      "ece": 0.046351405332935754,
+      "cal_slope": 1.0173654439467457,
+      "cal_intercept": -1.7115518351761128
     }
   ],
   "served_ci": {
     "auroc": [
-      0.917,
-      0.953
+      0.919,
+      0.954
     ],
     "auprc": [
-      0.411,
-      0.563
+      0.416,
+      0.568
     ],
     "brier": [
-      0.02,
-      0.024
+      0.019,
+      0.023
     ],
     "ece": [
-      0.043,
-      0.049
+      0.041,
+      0.047
     ]
   },
   "ram": {
-    "recovered_rides": 94154.2094133009,
-    "recovered_minutes": 1224004.7223729116,
-    "lost_rides_no_adapt": 259598.20055170593,
-    "ram_pct_of_lost": 0.36269207264611825,
-    "share_shifted": 0.13590931253047295,
+    "recovered_rides": 92562.09014057735,
+    "recovered_minutes": 1203307.1718275056,
+    "lost_rides_no_adapt": 251265.32734707938,
+    "ram_pct_of_lost": 0.36838385589396866,
+    "share_shifted": 0.13542174549000488,
     "share_cancel": 0.0006094588005850804,
-    "n_shifts": 1115,
+    "n_shifts": 1111,
     "distinct_target_slots": 755
   },
   "ram_pct_ci": [
-    0.326,
-    0.403
+    0.33,
+    0.409
   ],
   "safety": {
-    "n_shifts": 1115,
+    "n_shifts": 1111,
     "n_cancel": 5,
     "unsafe_recommendations": 0,
-    "mean_risk_reduction": 0.16344205294010147,
+    "mean_risk_reduction": 0.16180025755154015,
     "all_safe": true
   },
   "smoke_event": {
@@ -111,34 +111,71 @@
     "pct_days_below_jun8": 0.09090909090909091,
     "summer_ratio_median": 0.9675397032225801
   },
-  "event_study": {
-    "n_days": 1096,
-    "high_aqi_days_ge100": 21,
-    "aqi_effect_per_50": -0.0559,
-    "ci_low_per_50": -0.1086,
-    "ci_high_per_50": -0.0107
+  "aqi_identification": {
+    "between_day": {
+      "effect_per_50": -0.109,
+      "ci_low": -0.146,
+      "ci_high": -0.073,
+      "n": 1096
+    },
+    "within_day": {
+      "effect_per_50": -0.023,
+      "ci_low": -0.055,
+      "ci_high": 0.01,
+      "n": 1096
+    },
+    "episodes": {
+      "aqi_threshold": 100,
+      "polluted_hours": 669,
+      "polluted_days": 101,
+      "ride_ratio_vs_clean": 1.008,
+      "median_aqi_polluted": 118.0
+    }
   },
+  "ablation": [
+    {
+      "features": "temporal",
+      "auroc": 0.5094790658770951,
+      "auprc": 0.026140669971872133,
+      "brier": 0.02708680486831162,
+      "ece": 0.0534209552015228
+    },
+    {
+      "features": "+ weather",
+      "auroc": 0.936460501211331,
+      "auprc": 0.488396726176357,
+      "brier": 0.021223538106095334,
+      "ece": 0.04395490670563738
+    },
+    {
+      "features": "+ air quality",
+      "auroc": 0.9364861754858316,
+      "auprc": 0.4876567064728958,
+      "brier": 0.021244346223311655,
+      "ece": 0.044145661243224596
+    }
+  ],
   "cost_threshold": [
     {
       "cost_ratio_miss_to_flag": 5,
       "threshold": 0.167,
-      "sensitivity": 0.792,
-      "specificity": 0.911,
-      "flagged_share": 0.106
+      "sensitivity": 0.782,
+      "specificity": 0.915,
+      "flagged_share": 0.102
     },
     {
       "cost_ratio_miss_to_flag": 10,
       "threshold": 0.091,
-      "sensitivity": 0.891,
-      "specificity": 0.813,
-      "flagged_share": 0.205
+      "sensitivity": 0.896,
+      "specificity": 0.822,
+      "flagged_share": 0.196
     },
     {
       "cost_ratio_miss_to_flag": 20,
       "threshold": 0.048,
-      "sensitivity": 0.946,
-      "specificity": 0.698,
-      "flagged_share": 0.318
+      "sensitivity": 0.936,
+      "specificity": 0.708,
+      "flagged_share": 0.307
     }
   ],
   "rider_burden": [

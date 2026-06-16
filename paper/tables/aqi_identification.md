@@ -1,0 +1,4 @@
+| identification | effect_per_50 | ci_low | ci_high | n |
+| --- | --- | --- | --- | --- |
+| between-day (controlled) | -0.109 | -0.146 | -0.073 | 1096 |
+| within-day fixed effects | -0.023 | -0.055 | 0.010 | 1096 |
