@@ -228,7 +228,7 @@ each shift lowers predicted risk by 0.16 on average (Figure `ram_by_month`).
 
 ### 6.6 Robustness, transfer, and subgroups
 
-Results are stable to the label threshold (ρ ∈ {0.4, 0.5, 0.6}: base rate 3.8–8.9%, AUROC 0.93–0.95,
+Results are stable to the label threshold (ρ ∈ {0.4, 0.5, 0.6}: base rate 3.8–8.9%, AUROC 0.92–0.95,
 ECE ≤ 0.07) and across seasons (AUROC 0.90–0.96). Refitting on the Seoul Bike dataset and evaluating on
 a random 25% hold-out gives AUROC 0.87 (ECE 0.02, n = 2,117) — a cross-city method check, since a
 one-year panel cannot support a clean out-of-time tail. Burden is unequal: casual riders are suppressed
