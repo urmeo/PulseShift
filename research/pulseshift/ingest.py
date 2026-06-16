@@ -66,13 +66,10 @@ def load_bikeshare():
     )
     trips["ts_utc"] = trips["ts_utc"].dt.tz_localize(None)
 
-    pivot = (
-        trips.assign(member_casual=trips["member_casual"].fillna("unknown"))
-        .pivot_table(
-            index="ts_utc", columns="member_casual", aggfunc="size", fill_value=0
-        )
-        .rename(columns={"member": "rides_member", "casual": "rides_casual"})
-    )
+    trips = trips.dropna(subset=["member_casual"])
+    pivot = trips.pivot_table(
+        index="ts_utc", columns="member_casual", aggfunc="size", fill_value=0
+    ).rename(columns={"member": "rides_member", "casual": "rides_casual"})
     pivot["rides_total"] = pivot.sum(axis=1)
     out = pivot.reset_index()[["ts_utc", "rides_member", "rides_casual", "rides_total"]]
     cache.parent.mkdir(parents=True, exist_ok=True)
