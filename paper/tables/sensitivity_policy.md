@@ -1,0 +1,5 @@
+| shift_window_h | ram_pct_of_lost | share_shifted | all_safe |
+| --- | --- | --- | --- |
+| 2 | 0.303 | 0.111 | True |
+| 3 | 0.368 | 0.135 | True |
+| 4 | 0.417 | 0.153 | True |

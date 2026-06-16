@@ -116,12 +116,18 @@
       "effect_per_50": -0.109,
       "ci_low": -0.146,
       "ci_high": -0.073,
+      "se": 0.019,
+      "mde80": 0.052,
+      "mde90": 0.06,
       "n": 1096
     },
     "within_day": {
       "effect_per_50": -0.024,
       "ci_low": -0.059,
       "ci_high": 0.011,
+      "se": 0.018,
+      "mde80": 0.05,
+      "mde90": 0.058,
       "n": 881
     },
     "episodes": {
@@ -129,6 +135,8 @@
       "polluted_hours": 669,
       "polluted_days": 101,
       "ride_ratio_vs_clean": 1.008,
+      "ci_low": 0.94,
+      "ci_high": 1.085,
       "median_aqi_polluted": 118.0
     }
   },
@@ -199,5 +207,73 @@
       "active_hours": 21692,
       "suppression_rate": 0.09501198598561682
     }
-  ]
+  ],
+  "sensitivity": {
+    "policy": [
+      {
+        "shift_window_h": 2,
+        "ram_pct_of_lost": 0.303,
+        "share_shifted": 0.111,
+        "all_safe": true
+      },
+      {
+        "shift_window_h": 3,
+        "ram_pct_of_lost": 0.368,
+        "share_shifted": 0.135,
+        "all_safe": true
+      },
+      {
+        "shift_window_h": 4,
+        "ram_pct_of_lost": 0.417,
+        "share_shifted": 0.153,
+        "all_safe": true
+      }
+    ],
+    "smoke": [
+      {
+        "aqi_threshold": 80,
+        "polluted_days": 191,
+        "ride_ratio_vs_clean": 0.997,
+        "ci_low": 0.951,
+        "ci_high": 1.04
+      },
+      {
+        "aqi_threshold": 100,
+        "polluted_days": 101,
+        "ride_ratio_vs_clean": 1.008,
+        "ci_low": 0.94,
+        "ci_high": 1.085
+      },
+      {
+        "aqi_threshold": 120,
+        "polluted_days": 52,
+        "ride_ratio_vs_clean": 1.02,
+        "ci_low": 0.907,
+        "ci_high": 1.157
+      }
+    ],
+    "floor": [
+      {
+        "floor": 10,
+        "active_hours": 25968,
+        "base_rate": 0.024,
+        "auroc": 0.932,
+        "ece": 0.046
+      },
+      {
+        "floor": 20,
+        "active_hours": 24354,
+        "base_rate": 0.025,
+        "auroc": 0.936,
+        "ece": 0.044
+      },
+      {
+        "floor": 30,
+        "active_hours": 23219,
+        "base_rate": 0.025,
+        "auroc": 0.937,
+        "ece": 0.044
+      }
+    ]
+  }
 }

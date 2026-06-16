@@ -1,2 +1,2 @@
-aqi_threshold,polluted_hours,polluted_days,ride_ratio_vs_clean,median_aqi_polluted
-100,669,101,1.008,118.0
+aqi_threshold,polluted_hours,polluted_days,ride_ratio_vs_clean,ci_low,ci_high,median_aqi_polluted
+100,669,101,1.008,0.94,1.085,118.0
