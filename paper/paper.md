@@ -16,8 +16,8 @@ climatology, and we replace daily AQI with hourly AQI so that pollution can be i
 day rather than across seasons. Three findings follow. First, the air-quality effect is an artifact of
 how it is measured: the naive marginal association is *protective*, a season- and weather-controlled
 between-day regression gives a large negative effect (−10.9 ride-ratio points per +50 AQI, 95% CI −14.6
-to −7.3), but the rigorous within-day fixed-effects estimate collapses to −2.3 points (95% CI −5.5 to
-+1.0), and high-AQI hours matched to clean same-season hours show no reduction at all. Second, air
+to −7.3), but the rigorous within-day fixed-effects estimate collapses to −2.4 points (95% CI −5.9 to
++1.1), and high-AQI hours matched to clean same-season hours show no reduction at all. Second, air
 quality adds nothing to forecasting once weather is included (ΔAUROC and ΔAUPRC ≈ 0): weather is the
 entire signal. Third, calibration, not discrimination, decides whether the forecast is usable —
 class-weighting, a common default, leaves the model badly over-confident (Brier 0.13, ECE 0.25) while
@@ -160,8 +160,8 @@ suppressed. We train on 2022–2023 (16,150 hours) and test on 2024 (8,204 hours
 | Logistic (class-weighted) + calibration | 0.940 | 0.47 | 0.029 | 0.064 | 1.21 / −1.78 |
 | Gradient boosting | 0.941 | 0.53 | 0.025 | 0.046 | 1.02 / −1.71 |
 
-*Test year 2024, n = 8,204. Served-model 95% CIs: AUROC 0.92–0.95, AUPRC 0.42–0.57, Brier 0.019–0.023,
-ECE 0.041–0.047.*
+*Test year 2024, n = 8,204. Served-model 95% CIs (day-clustered bootstrap): AUROC 0.90–0.97, AUPRC
+0.32–0.64, Brier 0.017–0.026, ECE 0.036–0.052.*
 
 Features lift AUROC from 0.69 to 0.94; gradient boosting ties the logistic (0.94 each, edging only
 AUPRC). But discrimination is not the point. Class weighting — a common default for imbalance — leaves
@@ -170,7 +170,7 @@ unweighted served model is well calibrated (Brier 0.021, ECE 0.044), and post-ho
 also repairs the weighted model (ECE 0.253 → 0.064; Figure `reliability`). Net benefit is positive
 across low-to-moderate thresholds and maximized at the lowest ones (Figure `decision_curve`); at a 10:1
 cost ratio (missed suppression vs unnecessary shift) the threshold is 0.09, flagging 20% of hours at
-0.90 sensitivity and 0.82 specificity.
+0.90 sensitivity and 0.82 specificity. Discrimination across all models is shown in Figure `roc`.
 
 ### 6.2 Air quality adds no forecasting value
 
@@ -181,10 +181,10 @@ cost ratio (missed suppression vs unnecessary shift) the threshold is 0.09, flag
 | + Air quality | 0.936 | 0.49 | 0.021 | 0.044 |
 
 *Out-of-time, 2024.* Weather carries the entire forecast; adding hourly AQI and the smoke flag changes
-AUROC and AUPRC by ≈ 0. In the served model the hourly-AQI coefficient is small and positive
-(+0.04, correctly signed), where the same model on *daily* AQI loaded it negative (−0.04) — the
-daily measure does not even get the sign right. The forecast's accuracy is real but it is a weather
-forecast.
+AUROC and AUPRC by ≈ 0. Refitting the served model with the daily measure swapped in for hourly AQI
+flips its standardized coefficient from +0.04 (hourly, correctly signed) to −0.04 (daily) — the daily
+measure does not even get the sign right (Table `aqi_coefficient`). The forecast's accuracy is real but
+it is a weather forecast.
 
 ### 6.3 The air-quality effect is mostly confounding
 
@@ -192,18 +192,19 @@ forecast.
 | --- | --- | --- |
 | Marginal (no controls) | positive — apparently *protective* | (seasonal confound) |
 | Between-day (controlled) | −10.9 | −14.6 to −7.3 |
-| Within-day (fixed effects) | −2.3 | −5.5 to +1.0 |
+| Within-day (fixed effects) | −2.4 | −5.9 to +1.1 |
 
 The marginal curve falls as AQI rises (Figure `exposure_response`): suppression drops from ~7.5% in
 clean air to near zero above 150 AQI, because dirty hours are summer hours with peak ridership — taken
 at face value, pollution looks *good* for activity. Controlling for weather and season across 1,096
 days flips the sign to a large negative effect (−10.9 points per +50 AQI). But that estimate is still
-identified from between-day variation, and when day fixed effects absorb every day-level confounder the
-effect collapses to −2.3 points with a CI that crosses zero (Figure `aqi_identification`). Matching
-high-AQI hours (AQI ≥ 100; 669 hours over 101 days, median AQI 118) to clean hours of the same season
-and hour shows no reduction at all (ride ratio 1.01× of clean). The honest reading is that pollution's
-effect on this activity proxy is, at most, small — and that the large effects a daily analysis reports
-are an artifact of season.
+identified from between-day variation, and when day fixed effects absorb every day-level confounder —
+on the 881 days that carry genuine intraday AQI variation — the effect collapses to −2.4 points with a
+CI that crosses zero (Figure `aqi_identification`). Matching high-AQI hours (AQI ≥ 100; 669 hours over
+101 days, median AQI 118) to clean hours of the same season and hour shows no reduction at all, on an
+unadjusted basis (ride ratio 1.01× of clean). The honest reading is that pollution's effect on this
+activity proxy is, at most, small — and that the large effects a daily analysis reports are an artifact
+of season.
 
 The June 2023 Canadian-wildfire smoke is the vivid exception that proves the rule: on 8 June, daily
 ridership fell to 0.76× of expected. But as a single day it is only the 6th-lowest of 66 summer
@@ -251,17 +252,22 @@ layer.
 The label is a constructed proxy from ridership, not observed skipped sessions. Hourly AQI is CAMS
 reanalysis, which underestimates localized smoke plumes relative to ground stations (it reads the 8 June
 peak near 150 AQI where the EPA station recorded 196), so the within-day estimate is conservative for
-exactly the events of interest; ground-station hourly data would sharpen it. Carrying the 2024 volume
-forward to stay leak-free makes the 2024 suppression rate a modest undercount. RAM is a model-based
-upper bound. Equity is behavioural (rider type), not demographic. The smoke episode is a single
-confounded event — the within-day regression carries that claim.
+exactly the events of interest; ground-station hourly data would sharpen it. The within-day estimator is
+fit on the 881 of 1,096 days that carry genuine intraday AQI variation — days before CAMS hourly
+coverage begins (August 2022) fall back to a flat daily value and are excluded, since they add no
+identifying within-day variation. Carrying the 2024 volume forward to stay leak-free makes the 2024
+suppression rate a modest undercount. RAM is a model-based upper bound. Equity is behavioural (rider
+type), not demographic. The smoke episode is a single confounded event — the within-day regression
+carries that claim.
 
 ## 9. Reproducibility
 
-Public data and pinned dependencies; `make all` runs the whole pipeline. `build_data.py` and
-`run_analysis.py` regenerate every figure and table, `train_model.py` exports the served model,
-`validate_seoul.py` runs the external check, and `pytest` (in CI) guards the heat index, the leak-free
-label, the within-day estimator, the safety policy, and model-export parity. See `research/README.md`.
+Public data and pinned dependencies. `run_analysis.py` regenerates every figure and table from the
+committed panel, `build_data.py` rebuilds that panel from source, `train_model.py` exports the served
+model, and `validate_seoul.py` runs the external check; `make all` runs setup, analysis, model export,
+and tests (the committed panel makes the data step optional). `pytest` (in CI) guards the heat index,
+the leak-free label, the within-day estimator, the safety policy, and model-export parity. See
+`research/README.md`.
 
 ## References
 
