@@ -29,7 +29,7 @@ bind a future replication (the multi-city extension) to a single, declared spec.
   smoke flag, cyclical hour, weekend). Train 2022–2023, test 2024.
 - **Inference:** 1,000-resample percentile bootstrap; day-clustered for hourly metrics and effects.
 
-## Confirmatory (decided before looking at results)
+## Confirmatory (the primary, pre-committed analyses)
 
 1. Calibration of the served model vs the class-weighted variant (Brier, log loss, ECE, slope).
 2. The within-day AQI effect and its power/MDE.
