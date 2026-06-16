@@ -248,14 +248,29 @@ def aqi_identification(work):
     within = airquality.within_day_effect(work)
     episodes = airquality.smoke_episodes(work, aqi_thresh=100)
     plots.aqi_identification_plot(between, within)
+
+    cols = ["identification", "effect_per_50", "ci_low", "ci_high", "se", "n"]
     ladder = pd.DataFrame(
         [
             {"identification": "between-day (controlled)", **between},
             {"identification": "within-day fixed effects", **within},
         ]
-    )
+    )[cols]
     _write_table(ladder, "aqi_identification")
     _write_table(pd.DataFrame([episodes]), "smoke_episodes")
+
+    power = pd.DataFrame(
+        [
+            {
+                "estimand": "within-day AQI per +50",
+                "estimate": within["effect_per_50"],
+                "se": within["se"],
+                "mde_80pct_power": within["mde80"],
+                "mde_90pct_power": within["mde90"],
+            }
+        ]
+    )
+    _write_table(power, "aqi_power")
     return {"between_day": between, "within_day": within, "episodes": episodes}
 
 
@@ -339,6 +354,68 @@ def label_sensitivity(work):
     _write_table(pd.DataFrame(rows), "label_sensitivity")
 
 
+def policy_sensitivity(test, p_unw):
+    """RAM and safety across shift-window choices."""
+    rows = []
+    for window in (2, 3, 4):
+        reco = ram.recommend(test.assign(risk=p_unw), window=window)
+        stats = ram.ram_table(reco)
+        rows.append(
+            {
+                "shift_window_h": window,
+                "ram_pct_of_lost": round(stats["ram_pct_of_lost"], 3),
+                "share_shifted": round(stats["share_shifted"], 3),
+                "all_safe": safety.audit(reco)["all_safe"],
+            }
+        )
+    _write_table(pd.DataFrame(rows), "sensitivity_policy")
+    return rows
+
+
+def smoke_sensitivity(work):
+    """Episode effect across AQI thresholds."""
+    rows = []
+    for thresh in (80, 100, 120):
+        e = airquality.smoke_episodes(work, aqi_thresh=thresh)
+        rows.append(
+            {
+                k: e[k]
+                for k in [
+                    "aqi_threshold",
+                    "polluted_days",
+                    "ride_ratio_vs_clean",
+                    "ci_low",
+                    "ci_high",
+                ]
+            }
+        )
+    _write_table(pd.DataFrame(rows), "sensitivity_smoke")
+    return rows
+
+
+def floor_sensitivity(panel):
+    """Discrimination across the activity-floor choice."""
+    rows = []
+    for floor in (10, 20, 30):
+        sub = panel[panel["expected_rides"] >= floor].copy()
+        sub["suppressed"] = (
+            sub["rides_total"] < config.SUPPRESSION_RATIO * sub["expected_rides"]
+        ).astype(int)
+        tr, te = temporal_split(sub)
+        m = metrics(te["suppressed"], predict(fit_logistic(tr, balanced=False), te))
+        rows.append(
+            {
+                "floor": floor,
+                "active_hours": int(len(sub)),
+                "base_rate": round(m["base_rate"], 3),
+                "auroc": round(m["auroc"], 3),
+                "ece": round(m["ece"], 3),
+            }
+        )
+    _write_table(pd.DataFrame(rows), "sensitivity_floor")
+    return rows
+
+
 def main():
     panel = load_panel()
     work = active(panel)
@@ -357,6 +434,9 @@ def main():
     ablation = feature_ablation(train_all, test)
     burden = subgroups(test, panel)
     label_sensitivity(work)
+    policy_sens = policy_sensitivity(test, preds["unw"])
+    smoke_sens = smoke_sensitivity(work)
+    floor_sens = floor_sensitivity(panel)
 
     summary = {
         "panel_rows": int(len(panel)),
@@ -375,6 +455,11 @@ def main():
         "ablation": ablation,
         "cost_threshold": cost_rows,
         "rider_burden": burden.to_dict(orient="records"),
+        "sensitivity": {
+            "policy": policy_sens,
+            "smoke": smoke_sens,
+            "floor": floor_sens,
+        },
     }
     (config.TABLES / "summary.json").write_text(json.dumps(summary, indent=2))
     print("model_comparison:", json.dumps(summary["model_comparison"]))
