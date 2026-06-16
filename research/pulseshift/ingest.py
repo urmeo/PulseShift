@@ -1,5 +1,6 @@
 """Download and assemble real DC activity, weather, and air-quality series."""
 
+import json
 import zipfile
 import urllib.request
 from pathlib import Path
@@ -171,3 +172,29 @@ def load_aqi():
     cache.parent.mkdir(parents=True, exist_ok=True)
     daily.to_csv(cache, index=False)
     return daily
+
+
+def load_aqi_hourly():
+    """Hourly US AQI and PM2.5 for DC (CAMS reanalysis, local time)."""
+    cache = config.INTERIM / "aqi_hourly.csv"
+    if cache.exists():
+        return pd.read_csv(cache, parse_dates=["ts_local"])
+
+    frames = []
+    for year in config.YEARS:
+        url = config.OPENMETEO_AQI_URL.format(
+            lat=config.DC_LAT, lon=config.DC_LON, year=year
+        )
+        dest = _download(url, config.RAW / f"aqi_hourly_{year}.json")
+        h = json.loads(Path(dest).read_text())["hourly"]
+        frames.append(
+            pd.DataFrame(
+                {"ts_local": h["time"], "aqi_hourly": h["us_aqi"], "pm25": h["pm2_5"]}
+            )
+        )
+
+    hourly = pd.concat(frames, ignore_index=True)
+    hourly["ts_local"] = pd.to_datetime(hourly["ts_local"])
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    hourly.to_csv(cache, index=False)
+    return hourly

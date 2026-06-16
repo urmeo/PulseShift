@@ -52,8 +52,14 @@ def build_panel(write=True):
         .dt.tz_localize(None)
     )
     panel["date"] = panel["ts_local"].dt.normalize()
-    panel = panel.merge(aqi[["date", "aqi"]], on="date", how="left")
-    panel["aqi"] = panel["aqi"].ffill().bfill()
+    daily = aqi[["date", "aqi"]].rename(columns={"aqi": "aqi_epa_daily"})
+    panel = panel.merge(daily, on="date", how="left")
+    panel["aqi_epa_daily"] = panel["aqi_epa_daily"].ffill().bfill()
+
+    hourly = ingest.load_aqi_hourly()
+    panel = panel.merge(hourly, on="ts_local", how="left")
+    panel["aqi"] = panel["aqi_hourly"].fillna(panel["aqi_epa_daily"])
+    panel["pm25"] = panel["pm25"].interpolate(limit=6)
 
     panel = add_temporal(panel)
     panel["is_weekend"] = (panel["daytype"] == "weekend").astype(int)
