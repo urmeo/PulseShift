@@ -1,58 +1,76 @@
-# Forecasting Climate-Driven Suppression of Physical Activity: A Calibrated, Decision-Focused Evaluation on Real Urban Mobility Data
+# Does Air Quality Suppress Outdoor Activity? Seasonal Confounding, Hourly Identification, and a Calibrated Decision Tool
 
 Urme B.
 
 ## Abstract
 
-Climate stress increasingly disrupts outdoor physical activity, but most tools communicate hazard
-rather than estimate whether a planned session will be lost or how to preserve it. We treat activity
-suppression as a probabilistic forecasting problem and evaluate it as a decision tool, using three
-public sources for Washington DC, 2022–2024: Capital Bikeshare volumes, NOAA weather, and EPA air
-quality. Each active city-hour is labelled suppressed when ridership falls below half of a
-weather-free, leak-free climatology; we fit a calibrated logistic model against a season-aware
-baseline and a gradient-boosting comparator, and define Recovered Active Minutes (RAM) under a
-safety-constrained time-shift policy. Out-of-time on 2024, features lift AUROC from 0.69 to 0.94
-(95% CI 0.92–0.95); gradient boosting does not improve on it. Calibration is decisive: class-weighting
-makes the model badly over-confident (Brier 0.13, ECE 0.26), while the unweighted served model is well
-calibrated (Brier 0.022). Marginal exposure–response is confounded by season — cold, not heat,
-dominates — but adjusting for weather and season across 1,096 days, a 50-point AQI rise is associated
-with a 5.6-point drop in the daily ride ratio (95% CI 1.1–10.9), and during the June 2023 wildfire
-smoke ridership fell to 0.76× of normal at AQI 196. The policy recovers up to ~36% of otherwise-lost
-activity (an upper bound) while never recommending an unsafe hour, and the framework reaches AUROC 0.87
-on a second city, Seoul. The central lesson is that calibration and confounding, not headline
-accuracy, determine whether such a tool can be trusted.
+Heat, cold, rain, and wildfire smoke all disrupt outdoor physical activity, and air quality in
+particular is a growing concern as wildfire smoke reaches cities that rarely saw it. But most studies
+that link air quality to activity rely on *daily* pollution measures, and daily air quality is
+strongly confounded by season: the dirtiest days are hot summer days, exactly when outdoor activity
+peaks. We ask whether the air-quality–activity association survives honest identification, using three
+public sources for Washington DC, 2022–2024 — Capital Bikeshare volumes, NOAA weather, and hourly air
+quality — and we treat the question as both an estimation problem and a calibrated forecasting problem.
+We label each active city-hour suppressed when ridership falls below half of a weather-free, leak-free
+climatology, and we replace daily AQI with hourly AQI so that pollution can be identified *within* a
+day rather than across seasons. Three findings follow. First, the air-quality effect is an artifact of
+how it is measured: the naive marginal association is *protective*, a season- and weather-controlled
+between-day regression gives a large negative effect (−10.9 ride-ratio points per +50 AQI, 95% CI −14.6
+to −7.3), but the rigorous within-day fixed-effects estimate collapses to −2.3 points (95% CI −5.5 to
++1.0), and high-AQI hours matched to clean same-season hours show no reduction at all. Second, air
+quality adds nothing to forecasting once weather is included (ΔAUROC and ΔAUPRC ≈ 0): weather is the
+entire signal. Third, calibration, not discrimination, decides whether the forecast is usable —
+class-weighting, a common default, leaves the model badly over-confident (Brier 0.13, ECE 0.25) while
+the unweighted served model is well calibrated (Brier 0.021, ECE 0.044) at AUROC 0.94. A
+safety-constrained time-shift policy recovers ~37% of otherwise-lost activity while never recommending
+an unsafe hour, and the framework transfers to Seoul (AUROC 0.87). The lesson is that the headline
+air-quality effect reported across this literature is largely seasonal confounding, and only hourly,
+within-day identification corrects it.
 
-**Keywords:** physical activity; climate adaptation; probabilistic forecasting; calibration; decision
-curve analysis; air quality.
+**Keywords:** physical activity; air quality; wildfire smoke; confounding; fixed effects; calibration;
+decision curve analysis.
 
 ## 1. Introduction
 
 Physical inactivity is a large, preventable health burden, and climate change degrades the conditions
-under which health-preserving movement happens: heat, humidity, wildfire smoke, poor air quality, and
-rain all disrupt outdoor activity. Most responses communicate *hazard* ("it is unsafe") rather than
-*behaviour retention* — whether a specific planned session will actually be lost, and which feasible
-adaptation best preserves it.
+under which health-preserving movement happens. Air quality has become a central worry: wildfire smoke
+now routinely pushes eastern US cities into "unhealthy" territory, and a natural question is how much
+that smoke suppresses outdoor activity. The usual evidence is an association between *daily* air
+quality and *daily* activity. That association is treacherous, because daily air quality is seasonal —
+high-AQI days are disproportionately hot, stagnant summer days, which are also the busiest days for
+outdoor activity. A regression of activity on daily pollution can therefore report almost anything,
+including a protective effect, depending on what it controls for.
 
-We treat suppression as a probabilistic forecast and judge it as a decision tool: by calibration,
-decision-relevant net benefit, how much activity a constrained policy recovers, and whether that
-policy ever trades safety for participation. The model is kept minimal — a calibrated logistic
-regression against a season-aware baseline — because the contribution is the evaluation, not model
-complexity. We study Washington DC (2022–2024) and externally check on Seoul. Contributions: (i) a
-city-hour suppression target from a weather-free, leak-free climatology; (ii) evidence that
-calibration, not discrimination, governs usability; (iii) RAM under a safety-constrained, audited
-policy; and (iv) a demonstration that naive exposure–response is season-confounded, with the
-air-quality effect isolated by a multi-day controlled analysis.
+This paper makes air quality the object of study and asks whether its effect survives honest
+identification. We use municipal bike-share volume as an observable activity proxy for Washington DC
+(2022–2024), construct a suppression label from a weather-free, leak-free climatology, and — crucially
+— move from daily to *hourly* air quality so pollution can be identified within a day. Within-day
+identification holds season, weather regime, day of week, and every other day-level confounder fixed,
+and asks only whether the hours of a given day with worse air see less activity.
+
+We judge the forecast the same way: by calibration, decision-relevant net benefit, how much activity a
+constrained policy recovers, and whether that policy ever trades safety for participation. The model is
+kept minimal — a calibrated logistic regression against a season-aware baseline — because the
+contribution is the evaluation and the identification, not model complexity.
+
+Contributions: (i) a city-hour suppression target from a weather-free, leak-free climatology;
+(ii) an *identification ladder* for the air-quality effect — marginal, between-day, within-day — showing
+that the effect is mostly confounding and that hourly data is needed to see it; (iii) evidence, from a
+feature ablation, that air quality adds no forecasting value beyond weather; (iv) evidence that
+calibration, not discrimination, governs usability; and (v) Recovered Active Minutes (RAM) under a
+safety-constrained, audited time-shift policy.
 
 ## 2. Related work
 
-Bike-share demand tracks weather: across forty cities and ~100M trips, usage rises with temperature
-to ~27–28 °C then falls, with time of day dominant [4]; heat above ~30 °C and rain depress trips
-[3, 5]. We use municipal bike-share volume as an observable activity proxy, after the canonical
+Bike-share demand tracks weather: across forty cities and ~100M trips, usage rises with temperature to
+~27–28 °C then falls, with time of day dominant [4]; heat above ~30 °C and rain depress trips [3, 5].
+We use municipal bike-share volume as an observable activity proxy, after the canonical
 weather-labelled dataset [6]. Heat reduces physical work capacity and raises morbidity [2]; wildfire
 smoke's behavioural effect is threshold-like — in a 2019 bushfire experiment children's activity held
-until air quality became hazardous, then dropped sharply [1]. The evaluation borrows from clinical
-prediction, where calibration is a distinct, often-neglected requirement [7, 9], and from
-decision-curve analysis [8].
+until air quality became hazardous, then dropped sharply [1]. Much of the air-quality–activity
+literature relies on daily exposure, which is why the confounding we document is easy to miss. The
+evaluation borrows from clinical prediction, where calibration is a distinct, often-neglected
+requirement [7, 9], and from decision-curve analysis [8].
 
 ## 3. Problem formulation
 
@@ -65,9 +83,11 @@ forward from the last training year, so no test-period information enters the la
 Y_t = 1  if  rides_t < rho * E_t      (rho = 0.5)
 ```
 
-The target is `P(Y_t = 1 | W_t)`, with features heat index, two temperature hinges (`max(0, 55−T)`,
-`max(0, HI−85)`), AQI, humidity, wind, precipitation, visibility, a smoke flag, and cyclical hour and
-weekend. Because `E_t` conditions on season, the label measures within-season deviation and the fitted
+The forecasting target is `P(Y_t = 1 | W_t)`, with features heat index, two temperature hinges
+(`max(0, 55−T)`, `max(0, HI−85)`), hourly AQI, humidity, wind, precipitation, visibility, a smoke flag,
+and cyclical hour and weekend. For the estimation question we instead model the continuous ride ratio
+`rides_t / E_t` on AQI under increasingly strict identification (Section 5.2). Because `E_t` conditions
+on season, the label and the within-day estimator both measure within-season deviation; the forecast
 coefficients are associational.
 
 ## 4. Data
@@ -77,30 +97,53 @@ All sources are public and downloaded by the pipeline.
 - **Activity** — Capital Bikeshare trips (2022–2024), aggregated to hourly counts by rider type.
 - **Weather** — NOAA Local Climatological Data (Reagan National): hourly temperature, humidity, wind,
   visibility, precipitation, and present-weather codes; temperature and humidity give the NWS heat index.
-- **Air quality** — EPA AirData daily AQI for DC; intra-day variation enters via hourly visibility and
-  the smoke flag.
+- **Air quality** — *hourly* US AQI and PM2.5 from the Copernicus Atmosphere Monitoring Service (CAMS)
+  reanalysis via Open-Meteo, anchored to EPA AirData ground-station daily AQI. The hourly series covers
+  ~80% of city-hours (CAMS hourly begins August 2022); EPA daily AQI fills the remainder and serves as
+  the authoritative cross-check for the smoke event.
 
 Activity (DST-aware local) and weather (local standard time) are converted to UTC and joined on the
-hour; daily AQI joins on the local day. The 2024 trip files switched to fractional-second timestamps,
-parsed explicitly so no rides are dropped.
+hour; hourly AQI joins on the local hour, daily AQI on the local day. The 2024 trip files switched to
+fractional-second timestamps, parsed explicitly so no rides are dropped. Moving from daily to hourly
+AQI is the single change that makes within-day identification possible.
 
 ## 5. Methods
 
-The season-aware climatology baseline predicts the training suppression rate per cell (no weather).
-The model is a standardized logistic regression, fit unweighted and class-weighted; the served model
-(used for RAM and the app) is the unweighted one, with a gradient-boosting comparator to test for
-residual nonlinearity. We report Brier, log loss, ECE, and calibration slope/intercept, and apply
-5-fold cross-validated isotonic calibration to the class-weighted model. Training is 2022–2023, test
-2024; served-model metrics carry 95% percentile-bootstrap CIs (1,000 resamples; RAM resampled over
-days).
+### 5.1 Forecasting and calibration
 
-To isolate air quality, we regress the daily ride ratio on AQI adjusting for temperature,
-precipitation, weekend, and season across all 1,096 days, bootstrapping the coefficient over days. The
-recommender keeps each active hour or shifts it to the lowest-risk hour within ±3 h under a hard safety
-envelope (heat index < 103 °F, AQI < 150) and a minimum-benefit rule; RAM = `Σ E_t·(risk_keep −
+The season-aware climatology baseline predicts the training suppression rate per `season × daytype ×
+hour` cell (no weather). The model is a standardized logistic regression, fit unweighted and
+class-weighted; the served model (used for RAM and the app) is the unweighted one, with a
+gradient-boosting comparator to test for residual nonlinearity. We report Brier, log loss, ECE, and
+calibration slope/intercept, and apply 5-fold cross-validated isotonic calibration to the
+class-weighted model. Training is 2022–2023, test 2024; served-model metrics carry 95%
+percentile-bootstrap CIs (1,000 resamples; RAM resampled over days). A feature ablation adds the groups
+temporal → weather → air quality in turn and reports the out-of-time change in each metric, isolating
+what air quality contributes.
+
+### 5.2 The air-quality identification ladder
+
+We estimate the air-quality effect on the ride ratio at three levels of rigor:
+
+1. **Marginal** — the raw suppression-rate-by-AQI curve, with no controls.
+2. **Between-day (controlled)** — a daily regression of the ride ratio on daily-peak AQI, controlling
+   for temperature, precipitation, wind, humidity, weekend, and season, across all 1,096 days. This is
+   the typical specification in the literature.
+3. **Within-day (fixed effects)** — an hourly regression of the ride ratio on hourly AQI with day and
+   hour-of-day fixed effects and hourly weather controls. Day fixed effects absorb season, weather
+   regime, day of week, and every other day-level confounder; the AQI coefficient is identified purely
+   from intraday variation. CIs use a day-clustered bootstrap.
+
+As a fourth check we match high-AQI hours (AQI ≥ 100) to clean hours of the same season and hour and
+compare ride ratios directly.
+
+### 5.3 Recovered activity and safety
+
+The recommender keeps each active hour or shifts it to the lowest-risk hour within ±3 h under a hard
+safety envelope (heat index < 103 °F, AQI < 150) and a minimum-benefit rule; RAM = `Σ E_t·(risk_keep −
 risk_chosen)`, an upper bound that assumes full, uncapped demand transfer. We audit that no
-recommendation falls in unsafe conditions, report operating points at explicit cost ratios, stratify
-by season and rider type, and refit the whole pipeline on Seoul.
+recommendation falls in unsafe conditions, report operating points at explicit cost ratios, stratify by
+season and rider type, and refit the whole pipeline on Seoul.
 
 ## 6. Results
 
@@ -112,75 +155,113 @@ suppressed. We train on 2022–2023 (16,150 hours) and test on 2024 (8,204 hours
 | Model | AUROC | AUPRC | Brier | ECE | Cal. slope / int. |
 | --- | --- | --- | --- | --- | --- |
 | Season-aware climatology | 0.692 | 0.05 | 0.027 | 0.053 | 1.04 / −1.14 |
-| Logistic (unweighted, served) | 0.935 | 0.48 | 0.022 | 0.046 | 1.05 / −1.51 |
-| Logistic (class-weighted) | 0.939 | 0.45 | 0.130 | 0.255 | 0.69 / −3.84 |
-| Logistic (class-weighted) + calibration | 0.939 | 0.46 | 0.029 | 0.065 | 1.19 / −1.82 |
-| Gradient boosting | 0.935 | 0.52 | 0.025 | 0.046 | 0.98 / −1.75 |
+| Logistic (unweighted, served) | 0.936 | 0.49 | 0.021 | 0.044 | 1.06 / −1.45 |
+| Logistic (class-weighted) | 0.940 | 0.45 | 0.128 | 0.253 | 0.69 / −3.83 |
+| Logistic (class-weighted) + calibration | 0.940 | 0.47 | 0.029 | 0.064 | 1.21 / −1.78 |
+| Gradient boosting | 0.941 | 0.53 | 0.025 | 0.046 | 1.02 / −1.71 |
 
-*Test year 2024, n = 8,204. Served-model 95% CIs: AUROC 0.92–0.95, AUPRC 0.41–0.56, Brier 0.020–0.024,
-ECE 0.043–0.049.*
+*Test year 2024, n = 8,204. Served-model 95% CIs: AUROC 0.92–0.95, AUPRC 0.42–0.57, Brier 0.019–0.023,
+ECE 0.041–0.047.*
 
-Features lift AUROC from 0.69 to 0.94; gradient boosting ties the logistic (0.935 each, edging only
+Features lift AUROC from 0.69 to 0.94; gradient boosting ties the logistic (0.94 each, edging only
 AUPRC). But discrimination is not the point. Class weighting — a common default for imbalance — leaves
-the model badly over-confident (Brier 0.130, worse than the baseline's 0.027; ECE 0.255), while the
-unweighted served model is well calibrated (Brier 0.022, ECE 0.046), and post-hoc isotonic calibration
-also repairs the weighted model (ECE 0.255 → 0.065; Figure `reliability`). Net benefit is positive
-across low-to-moderate thresholds and maximized at the lowest ones (Figure `decision_curve`); at a
-10:1 cost ratio (missed suppression vs unnecessary shift) the threshold is 0.09, flagging 21% of hours
-at 0.89 sensitivity and 0.81 specificity.
+the model badly over-confident (Brier 0.128, worse than the baseline's 0.027; ECE 0.253), while the
+unweighted served model is well calibrated (Brier 0.021, ECE 0.044), and post-hoc isotonic calibration
+also repairs the weighted model (ECE 0.253 → 0.064; Figure `reliability`). Net benefit is positive
+across low-to-moderate thresholds and maximized at the lowest ones (Figure `decision_curve`); at a 10:1
+cost ratio (missed suppression vs unnecessary shift) the threshold is 0.09, flagging 20% of hours at
+0.90 sensitivity and 0.82 specificity.
 
-### 6.2 What suppresses activity
+### 6.2 Air quality adds no forecasting value
 
-Marginal exposure–response is confounded by season (Figure `exposure_response`): suppression falls
-from ~17% in the coldest hours to near zero above 90 °F, because hot hours coincide with peak summer
-ridership — cold, not heat, dominates. With precipitation and a cold-stress hinge the served model
-recovers correctly-signed drivers (rain +0.40, cold +0.55 raise suppression), while heat loads
-negative (−0.66) and daily AQI is near zero (−0.04); all coefficients are associational. Adjusting for
-weather and season across 1,096 days, each 50-point AQI rise is associated with a 5.6-point drop in
-the daily ride ratio (95% CI 1.1–10.9). The June 2023 smoke episode is the visible exemplar (AQI 196,
-ridership 0.76× expected), though as a single day it is only the 6th-lowest of 66 summer weekdays and
-coincided with advisories; the multi-day regression is the stronger evidence.
+| Feature set | AUROC | AUPRC | Brier | ECE |
+| --- | --- | --- | --- | --- |
+| Temporal only | 0.509 | 0.03 | 0.027 | 0.053 |
+| + Weather | 0.936 | 0.49 | 0.021 | 0.044 |
+| + Air quality | 0.936 | 0.49 | 0.021 | 0.044 |
 
-### 6.3 Recovered activity and safety
+*Out-of-time, 2024.* Weather carries the entire forecast; adding hourly AQI and the smoke flag changes
+AUROC and AUPRC by ≈ 0. In the served model the hourly-AQI coefficient is small and positive
+(+0.04, correctly signed), where the same model on *daily* AQI loaded it negative (−0.04) — the
+daily measure does not even get the sign right. The forecast's accuracy is real but it is a weather
+forecast.
 
-The policy could recover ~36% (95% CI 33–40%) of otherwise-lost activity — about 94,000 rides
-(~1.2M rider-minutes) against ~260,000 lost under no adaptation — an upper bound under perfect,
-uncapped demand transfer (1,115 shifts into 755 distinct slots). It is conservative (14% of hours
+### 6.3 The air-quality effect is mostly confounding
+
+| Identification | AQI effect (ride-ratio pts per +50 AQI) | 95% CI |
+| --- | --- | --- |
+| Marginal (no controls) | positive — apparently *protective* | (seasonal confound) |
+| Between-day (controlled) | −10.9 | −14.6 to −7.3 |
+| Within-day (fixed effects) | −2.3 | −5.5 to +1.0 |
+
+The marginal curve falls as AQI rises (Figure `exposure_response`): suppression drops from ~7.5% in
+clean air to near zero above 150 AQI, because dirty hours are summer hours with peak ridership — taken
+at face value, pollution looks *good* for activity. Controlling for weather and season across 1,096
+days flips the sign to a large negative effect (−10.9 points per +50 AQI). But that estimate is still
+identified from between-day variation, and when day fixed effects absorb every day-level confounder the
+effect collapses to −2.3 points with a CI that crosses zero (Figure `aqi_identification`). Matching
+high-AQI hours (AQI ≥ 100; 669 hours over 101 days, median AQI 118) to clean hours of the same season
+and hour shows no reduction at all (ride ratio 1.01× of clean). The honest reading is that pollution's
+effect on this activity proxy is, at most, small — and that the large effects a daily analysis reports
+are an artifact of season.
+
+The June 2023 Canadian-wildfire smoke is the vivid exception that proves the rule: on 8 June, daily
+ridership fell to 0.76× of expected. But as a single day it is only the 6th-lowest of 66 summer
+weekdays and coincided with official advisories, so it cannot carry a population claim; the within-day
+estimate is the credible evidence, and it is modest (Figure `smoke_event`).
+
+### 6.4 What does suppress activity
+
+With precipitation and a cold-stress hinge the served model recovers correctly-signed weather drivers:
+high humidity (+0.96), cold stress (+0.54), and rain (+0.40) raise suppression, while heat loads
+negative (heat index −0.69, heat hinge −0.81) because hot hours coincide with peak summer ridership;
+all coefficients are associational. Cold and rain, not heat or smoke, dominate suppression in this city.
+
+### 6.5 Recovered activity and safety
+
+The policy could recover ~37% (95% CI 33–41%) of otherwise-lost activity — about 93,000 rides
+(~1.2M rider-minutes) against ~251,000 lost under no adaptation — an upper bound under perfect,
+uncapped demand transfer (1,111 shifts into 755 distinct slots). It is conservative (14% of hours
 shifted, 0.06% cancelled) and safe by construction: no recommendation falls in unsafe conditions, and
 each shift lowers predicted risk by 0.16 on average (Figure `ram_by_month`).
 
-### 6.4 Robustness, transfer, and subgroups
+### 6.6 Robustness, transfer, and subgroups
 
-Results are stable to the label threshold (ρ ∈ {0.4, 0.5, 0.6}: base rate 3.8–8.9%, AUROC 0.92–0.95,
-ECE ≤ 0.07) and across seasons (AUROC 0.90–0.96). Refitting on the Seoul Bike dataset and evaluating
-on a random 25% hold-out gives AUROC 0.87 (ECE 0.02, n = 2,117) — a cross-city method check, since a
-one-year panel cannot support a clean out-of-time tail. Burden is unequal: casual riders are
-suppressed 9.5% of active hours versus 5.1% for members (~1.9×).
+Results are stable to the label threshold (ρ ∈ {0.4, 0.5, 0.6}: base rate 3.8–8.9%, AUROC 0.93–0.95,
+ECE ≤ 0.07) and across seasons (AUROC 0.90–0.96). Refitting on the Seoul Bike dataset and evaluating on
+a random 25% hold-out gives AUROC 0.87 (ECE 0.02, n = 2,117) — a cross-city method check, since a
+one-year panel cannot support a clean out-of-time tail. Burden is unequal: casual riders are suppressed
+9.5% of active hours versus 5.1% for members (~1.9×).
 
 ## 7. Discussion
 
-Calibration is the result that matters: a model excellent on AUROC is unusable when class-weighted,
-and reporting discrimination alone would have hidden a Brier worse than the baseline. Naive
-climate–activity associations are confounded — a regression of activity on heat would have "found"
-heat protective — so the defensible signal comes from controls and the within-season event. Despite a
-modest model, a calibrated risk score plus a safety-constrained policy recovers a meaningful, bounded
-share of lost activity and transfers to a second city. The PulseShift app ships exactly this served
-model client-side; this paper is its evidence layer.
+Two results matter beyond this city. First, the air-quality effect on activity is largely a measurement
+artifact: the same data yields a *protective* marginal association, a large negative between-day effect,
+and a near-null within-day effect, and only the last holds season fixed. Studies that regress activity
+on daily pollution — the norm — are therefore likely to overstate the effect, and hourly data is what
+exposes the gap. Second, calibration, not discrimination, is what makes a forecast usable: a model
+excellent on AUROC is unusable when class-weighted, and reporting discrimination alone would have hidden
+a Brier worse than the baseline. Despite a deliberately modest model, a calibrated risk score plus a
+safety-constrained policy recovers a meaningful, bounded share of lost activity and transfers to a
+second city. The PulseShift app ships exactly this served model client-side; this paper is its evidence
+layer.
 
 ## 8. Limitations
 
-The label is a constructed proxy from ridership, not observed skipped sessions. Carrying the 2024
-volume forward to stay leak-free makes the 2024 suppression rate a modest undercount. RAM is a
-model-based upper bound. Equity is behavioural (rider type), not demographic. AQI is daily; hourly air
-quality would sharpen the smoke arm. The smoke episode is a single confounded event — the multi-day
-regression carries that claim.
+The label is a constructed proxy from ridership, not observed skipped sessions. Hourly AQI is CAMS
+reanalysis, which underestimates localized smoke plumes relative to ground stations (it reads the 8 June
+peak near 150 AQI where the EPA station recorded 196), so the within-day estimate is conservative for
+exactly the events of interest; ground-station hourly data would sharpen it. Carrying the 2024 volume
+forward to stay leak-free makes the 2024 suppression rate a modest undercount. RAM is a model-based
+upper bound. Equity is behavioural (rider type), not demographic. The smoke episode is a single
+confounded event — the within-day regression carries that claim.
 
 ## 9. Reproducibility
 
-Public data and pinned dependencies; `build_data.py` and `run_analysis.py` regenerate every figure and
-table, `train_model.py` exports the served model, `validate_seoul.py` runs the external check, and
-`pytest` (in CI) guards the heat index, the leak-free label, the safety policy, and model-export
-parity. See `research/README.md`.
+Public data and pinned dependencies; `make all` runs the whole pipeline. `build_data.py` and
+`run_analysis.py` regenerate every figure and table, `train_model.py` exports the served model,
+`validate_seoul.py` runs the external check, and `pytest` (in CI) guards the heat index, the leak-free
+label, the within-day estimator, the safety policy, and model-export parity. See `research/README.md`.
 
 ## References
 
@@ -202,3 +283,4 @@ parity. See `research/README.md`.
    *Medical Decision Making*. 2006;26(6):565–574. doi:10.1177/0272989X06295361
 9. Niculescu-Mizil A, Caruana R. Predicting good probabilities with supervised learning. *Proceedings
    of the 22nd International Conference on Machine Learning (ICML)*. 2005.
+```
