@@ -27,7 +27,7 @@ EPA_DAILY_AQI_URL = "https://aqs.epa.gov/aqsweb/airdata/daily_aqi_by_county_{yea
 DC_LAT, DC_LON = 38.8951, -77.0364
 OPENMETEO_AQI_URL = (
     "https://air-quality-api.open-meteo.com/v1/air-quality"
-    "?latitude={lat}&longitude={lon}&hourly=us_aqi,pm2_5,ozone"
+    "?latitude={lat}&longitude={lon}&hourly=us_aqi,pm2_5"
     "&start_date={year}-01-01&end_date={year}-12-31&timezone=America%2FNew_York"
 )
 
