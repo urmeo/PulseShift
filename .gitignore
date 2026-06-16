@@ -5,5 +5,8 @@
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
 research/data/raw/
 research/data/interim/
