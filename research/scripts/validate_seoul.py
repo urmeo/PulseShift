@@ -12,6 +12,7 @@ from sklearn.preprocessing import StandardScaler
 from pulseshift import config
 from pulseshift.evaluation import metrics
 from pulseshift.features import heat_index_f
+from pulseshift.tables import write_table
 
 URL = "https://archive.ics.uci.edu/static/public/560/seoul+bike+sharing+demand.zip"
 FEATURES = [
@@ -114,17 +115,7 @@ def main():
             }
         ]
     )
-    config.TABLES.mkdir(parents=True, exist_ok=True)
-    row.to_csv(config.TABLES / "seoul_validation.csv", index=False)
-    header = (
-        "| "
-        + " | ".join(row.columns)
-        + " |\n| "
-        + " | ".join("---" for _ in row.columns)
-        + " |\n"
-    )
-    body = "| " + " | ".join(str(v) for v in row.iloc[0]) + " |\n"
-    (config.TABLES / "seoul_validation.md").write_text(header + body)
+    write_table(row, "seoul_validation")
     print(row.to_string(index=False))
 
 

@@ -29,22 +29,7 @@ from pulseshift.models import (
     temporal_split,
 )
 from pulseshift.panel import active, label_suppression, load_panel
-
-
-def _fmt(value):
-    return f"{value:.3f}" if isinstance(value, float) else str(value)
-
-
-def _write_table(df, name):
-    config.TABLES.mkdir(parents=True, exist_ok=True)
-    df.to_csv(config.TABLES / f"{name}.csv", index=False)
-    header = "| " + " | ".join(df.columns) + " |"
-    sep = "| " + " | ".join("---" for _ in df.columns) + " |"
-    rows = [
-        "| " + " | ".join(_fmt(v) for v in row) + " |"
-        for row in df.itertuples(index=False)
-    ]
-    (config.TABLES / f"{name}.md").write_text("\n".join([header, sep, *rows]) + "\n")
+from pulseshift.tables import write_table as _write_table
 
 
 def fit_models(train_all, work, test):
