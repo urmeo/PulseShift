@@ -2,7 +2,8 @@
 
 Orchestrated as a sequence of small steps so each analysis block is readable on its own:
 fit -> compare -> calibrate CIs -> coefficients -> decision/cost -> figures -> RAM ->
-smoke event -> AQI event study -> subgroups -> threshold sensitivity -> summary.
+smoke event -> AQI identification -> AQI coefficient -> ablation -> subgroups ->
+threshold sensitivity -> summary.
 """
 
 import json
@@ -88,16 +89,20 @@ def model_comparison(test, preds):
 
 def served_confidence_intervals(test, p_unw):
     yt = test["suppressed"].to_numpy()
+    days = test["ts_local"].dt.normalize().to_numpy()  # cluster by day
     ci = {
-        "auroc": bootstrap_ci(yt, p_unw, roc_auc_score, require_two_classes=True),
-        "auprc": bootstrap_ci(
-            yt, p_unw, average_precision_score, require_two_classes=True
+        "auroc": bootstrap_ci(
+            yt, p_unw, roc_auc_score, require_two_classes=True, groups=days
         ),
-        "brier": bootstrap_ci(yt, p_unw, brier_score_loss),
+        "auprc": bootstrap_ci(
+            yt, p_unw, average_precision_score, require_two_classes=True, groups=days
+        ),
+        "brier": bootstrap_ci(yt, p_unw, brier_score_loss, groups=days),
         "ece": bootstrap_ci(
             yt,
             p_unw,
             lambda y, p: expected_calibration_error(np.asarray(y), np.asarray(p)),
+            groups=days,
         ),
     }
     _write_table(
@@ -269,6 +274,25 @@ def aqi_identification(work):
     return {"between_day": between, "within_day": within, "episodes": episodes}
 
 
+def aqi_coefficient(work):
+    """Served logistic AQI coefficient: hourly measure vs daily measure."""
+    ai = MODEL_FEATURES.index("aqi")
+    hourly = fit_logistic(work, balanced=False)
+    daily = fit_logistic(work.assign(aqi=work["aqi_epa_daily"]), balanced=False)
+    rows = [
+        {
+            "aqi_source": "hourly (served)",
+            "std_coefficient": float(hourly.named_steps["clf"].coef_[0][ai]),
+        },
+        {
+            "aqi_source": "daily",
+            "std_coefficient": float(daily.named_steps["clf"].coef_[0][ai]),
+        },
+    ]
+    _write_table(pd.DataFrame(rows), "aqi_coefficient")
+    return rows
+
+
 def feature_ablation(train_all, test):
     """Marginal value of each feature group, out-of-time."""
     groups = {
@@ -344,6 +368,7 @@ def main():
     test, ram_stats, audit, ram_ci = recovered_active_minutes(test, preds["unw"])
     smoke_context = smoke_event(panel)
     aqi = aqi_identification(work)
+    aqi_coef = aqi_coefficient(work)
     ablation = feature_ablation(train_all, test)
     burden = subgroups(test, panel)
     label_sensitivity(work)
@@ -361,6 +386,7 @@ def main():
         "safety": audit,
         "smoke_event": smoke_context,
         "aqi_identification": aqi,
+        "aqi_coefficient": aqi_coef,
         "ablation": ablation,
         "cost_threshold": cost_rows,
         "rider_burden": burden.to_dict(orient="records"),
