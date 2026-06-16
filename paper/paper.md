@@ -17,7 +17,9 @@ day rather than across seasons. Three findings follow. First, the air-quality ef
 how it is measured: the naive marginal association is *protective*, a season- and weather-controlled
 between-day regression gives a large negative effect (−10.9 ride-ratio points per +50 AQI, 95% CI −14.6
 to −7.3), but the rigorous within-day fixed-effects estimate collapses to −2.4 points (95% CI −5.9 to
-+1.1), and high-AQI hours matched to clean same-season hours show no reduction at all. Second, air
++1.1), and high-AQI hours matched to clean same-season hours show no reduction (1.01×, 95% CI
+0.94–1.09). The within-day design can detect effects above ~5 points at 80% power, so this is a
+bounded-small effect, not merely an underpowered null. Second, air
 quality adds nothing to forecasting once weather is included (ΔAUROC and ΔAUPRC ≈ 0): weather is the
 entire signal. Third, calibration, not discrimination, decides whether the forecast is usable:
 class-weighting, a common default, leaves the model badly over-confident (Brier 0.13, ECE 0.25) while
@@ -68,9 +70,13 @@ We use municipal bike-share volume as an observable activity proxy, after the ca
 weather-labelled dataset [6]. Heat reduces physical work capacity and raises morbidity [2]; wildfire
 smoke's behavioural effect is threshold-like: in a 2019 bushfire experiment children's activity held
 until air quality became hazardous, then dropped sharply [1]. Much of the air-quality–activity
-literature relies on daily exposure, which is why the confounding we document is easy to miss. The
-evaluation borrows from clinical prediction, where calibration is a distinct, often-neglected
-requirement [7, 9], and from decision-curve analysis [8].
+literature relies on daily exposure, which is why the confounding we document is easy to miss. That
+seasonal confounding of pollution time-series is a known hazard — air-pollution epidemiology developed
+case-crossover and time-series designs precisely to remove it — so our contribution is not the
+phenomenon but its application here: bringing within-day fixed-effects identification to a mobility
+outcome, and pairing it with a calibrated, decision-audited forecast. The evaluation borrows from
+clinical prediction, where calibration is a distinct, often-neglected requirement [7, 9], and from
+decision-curve analysis [8].
 
 ## 3. Problem formulation
 
@@ -200,11 +206,13 @@ at face value, pollution looks *good* for activity. Controlling for weather and 
 days flips the sign to a large negative effect (−10.9 points per +50 AQI). But that estimate is still
 identified from between-day variation, and when day fixed effects absorb every day-level confounder —
 on the 881 days that carry genuine intraday AQI variation — the effect collapses to −2.4 points with a
-CI that crosses zero (Figure `aqi_identification`). Matching high-AQI hours (AQI ≥ 100; 669 hours over
-101 days, median AQI 118) to clean hours of the same season and hour shows no reduction at all, on an
-unadjusted basis (ride ratio 1.01× of clean). The honest reading is that pollution's effect on this
-activity proxy is, at most, small, and that the large effects a daily analysis reports are an artifact
-of season.
+CI that crosses zero (Figure `aqi_identification`). This is not merely an underpowered null: the
+within-day design detects effects above ~5 points per +50 AQI at 80% power (SE 1.8), so the true
+intraday effect is bounded small. Matching high-AQI hours (AQI ≥ 100; 669 hours over 101 days, median
+AQI 118) to clean hours of the same season and hour shows no reduction (ride ratio 1.01× of clean, 95%
+CI 0.94–1.09, day-clustered), and the null holds at AQI thresholds of 80, 100, and 120. The honest
+reading is that pollution's effect on this mobility proxy is, at most, small, and that the large effects
+a daily analysis reports are an artifact of season.
 
 The June 2023 Canadian-wildfire smoke is the vivid exception that proves the rule: on 8 June, daily
 ridership fell to 0.76× of expected. But as a single day it is only the 6th-lowest of 66 summer
@@ -228,19 +236,24 @@ each shift lowers predicted risk by 0.16 on average (Figure `ram_by_month`).
 
 ### 6.6 Robustness, transfer, and subgroups
 
-Results are stable to the label threshold (ρ ∈ {0.4, 0.5, 0.6}: base rate 3.8–8.9%, AUROC 0.92–0.95,
-ECE ≤ 0.07) and across seasons (AUROC 0.90–0.96). Refitting on the Seoul Bike dataset and evaluating on
-a random 25% hold-out gives AUROC 0.87 (ECE 0.02, n = 2,117) — a cross-city method check, since a
-one-year panel cannot support a clean out-of-time tail. Burden is unequal: casual riders are suppressed
-9.5% of active hours versus 5.1% for members (~1.9×).
+Results are stable to the analyst choices, which we sweep rather than fix silently. Discrimination holds
+across the label threshold (ρ ∈ {0.4, 0.5, 0.6}: base rate 3.8–8.9%, AUROC 0.92–0.95, ECE ≤ 0.07), the
+activity floor (10/20/30 expected rides: AUROC 0.93–0.94), and the seasons (AUROC 0.90–0.96). The
+air-quality null is stable to the high-AQI cutoff (thresholds 80/100/120 all give ride ratio ≈ 1, CIs
+spanning 1). RAM is the one number that moves with its tuning: 30%, 37%, 42% for a ±2/±3/±4 h shift
+window — monotone and safe at every setting, but a reminder that it is a policy upper bound, not a point
+estimate. Refitting on the Seoul Bike dataset and evaluating on a random 25% hold-out gives AUROC 0.87
+(ECE 0.02, n = 2,117) — a cross-city method check, since a one-year panel cannot support a clean
+out-of-time tail. Burden is unequal: casual riders are suppressed 9.5% of active hours versus 5.1% for
+members (~1.9×).
 
 ## 7. Discussion
 
-Two results matter beyond this city. First, the air-quality effect on activity is largely a measurement
+Two results matter beyond this city. First, the air-quality effect on mobility is largely a measurement
 artifact: the same data yields a *protective* marginal association, a large negative between-day effect,
-and a near-null within-day effect, and only the last holds season fixed. Studies that regress activity
-on daily pollution (the norm) are therefore likely to overstate the effect, and hourly data is what
-exposes the gap. Second, calibration, not discrimination, is what makes a forecast usable: a model
+and a bounded-near-null within-day effect, and only the last holds season fixed. Studies that regress
+activity on daily pollution (the norm) are therefore likely to overstate the effect, and hourly data is
+what exposes the gap. Second, calibration, not discrimination, is what makes a forecast usable: a model
 excellent on AUROC is unusable when class-weighted, and reporting discrimination alone would have hidden
 a Brier worse than the baseline. Despite a deliberately modest model, a calibrated risk score plus a
 safety-constrained policy recovers a meaningful, bounded share of lost activity and transfers to a
@@ -249,10 +262,15 @@ layer.
 
 ## 8. Limitations
 
-The label is a constructed proxy from ridership, not observed skipped sessions. Hourly AQI is CAMS
-reanalysis, which underestimates localized smoke plumes relative to ground stations (it reads the 8 June
-peak near 150 AQI where the EPA station recorded 196), so the within-day estimate is conservative for
-exactly the events of interest; ground-station hourly data would sharpen it. The within-day estimator is
+Construct validity is the central caveat: bike-share ridership is a proxy for *outdoor mobility demand*,
+not measured exercise, and it bundles commuting, errands, and tourism with recreation. The suppression
+label is a constructed cutoff (ridership below half of climatology), not an observed skipped session. We
+therefore read every result as a statement about weather- and air-quality-driven mobility, and any
+physical-activity or health interpretation requires external validation against measured activity (e.g.
+wearable or survey data) — which a multi-city replication should carry. Hourly AQI is CAMS reanalysis,
+which underestimates localized smoke plumes relative to ground stations (it reads the 8 June peak near
+150 AQI where the EPA station recorded 196), so the within-day estimate is conservative for exactly the
+events of interest; ground-station hourly data would sharpen it. The within-day estimator is
 fit on the 881 of 1,096 days that carry genuine intraday AQI variation — days before CAMS hourly
 coverage begins (August 2022) fall back to a flat daily value and are excluded, since they add no
 identifying within-day variation. Carrying the 2024 volume forward to stay leak-free makes the 2024
@@ -265,9 +283,10 @@ carries that claim.
 Public data and pinned dependencies. `run_analysis.py` regenerates every figure and table from the
 committed panel, `build_data.py` rebuilds that panel from source, `train_model.py` exports the served
 model, and `validate_seoul.py` runs the external check; `make all` runs setup, analysis, model export,
-and tests (the committed panel makes the data step optional). `pytest` (in CI) guards the heat index,
-the leak-free label, the within-day estimator, the safety policy, and model-export parity. See
-`research/README.md`.
+and tests (the committed panel makes the data step optional). The primary specification, and the line
+between confirmatory and exploratory results, are fixed in advance in `paper/preregistration.md`.
+`pytest` (in CI) guards the heat index, the leak-free label, the within-day estimator, the safety
+policy, and model-export parity. See `research/README.md`.
 
 ## References
 
