@@ -90,7 +90,7 @@ def _synthetic_aqi_panel():
         day_boost = 0.02 * d  # confounder: busy days are also dirty days
         for h in range(24):
             aqi = day_mean + 40 + 20 * np.sin(2 * np.pi * h / 24)
-            ratio = 1.0 - 0.004 * aqi + day_boost + rng.normal(0, 0.002)
+            ratio = 1.0 - 0.004 * aqi + day_boost + rng.normal(0, 0.01)
             rows.append(
                 {
                     "ts_local": start + pd.Timedelta(hours=h),
@@ -117,6 +117,13 @@ def test_within_day_removes_day_confounder():
     assert within["effect_per_50"] == pytest.approx(-0.2, abs=0.05)
     assert within["ci_low"] <= within["effect_per_50"] <= within["ci_high"]
     assert between["effect_per_50"] > within["effect_per_50"]
+    assert within["mde80"] > within["se"] > 0  # detectable effect scales with SE
+
+
+def test_smoke_episode_ci_ordered():
+    e = airquality.smoke_episodes(_synthetic_aqi_panel(), aqi_thresh=100, n_boot=200)
+    assert e["polluted_hours"] > 0
+    assert e["ci_low"] <= e["ride_ratio_vs_clean"] <= e["ci_high"]
 
 
 def test_served_model_matches_export():
