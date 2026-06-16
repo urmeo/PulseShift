@@ -39,9 +39,9 @@ def main():
         "intercept": float(clf.intercept_[0]),
         "safety": {"heat_unsafe_f": config.HEAT_UNSAFE_F, "aqi_unsafe": config.AQI_UNSAFE},
         "meta": {
-            "model_version": "1.1.0",
+            "model_version": "1.2.0",
             "git_commit": _git_commit(),
-            "trained_on": "Washington DC, Capital Bikeshare + NOAA + EPA, 2022-2024",
+            "trained_on": "Washington DC, Capital Bikeshare + NOAA + EPA/CAMS hourly AQI, 2022-2024",
             "active_hours": int(len(work)),
             "auroc_2024": round(float(roc_auc_score(test["suppressed"], p)), 3),
             "brier_2024": round(float(brier_score_loss(test["suppressed"], p)), 3),
