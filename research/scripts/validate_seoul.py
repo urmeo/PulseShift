@@ -14,19 +14,33 @@ from pulseshift.evaluation import metrics
 from pulseshift.features import heat_index_f
 
 URL = "https://archive.ics.uci.edu/static/public/560/seoul+bike+sharing+demand.zip"
-FEATURES = ["heat_index_f", "cold_stress", "heat_stress", "humidity", "wind_mph",
-            "precip_in", "visibility_mi", "hour_sin", "hour_cos", "is_weekend"]
+FEATURES = [
+    "heat_index_f",
+    "cold_stress",
+    "heat_stress",
+    "humidity",
+    "wind_mph",
+    "precip_in",
+    "visibility_mi",
+    "hour_sin",
+    "hour_cos",
+    "is_weekend",
+]
 
 
 def _load():
     path = config.RAW / "seoul.zip"
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
-        req = urllib.request.Request(URL, headers={"User-Agent": "pulseshift-research/1.0"})
+        req = urllib.request.Request(
+            URL, headers={"User-Agent": "pulseshift-research/1.0"}
+        )
         path.write_bytes(urllib.request.urlopen(req, timeout=120).read())
     with zipfile.ZipFile(path) as z:
-        name = [n for n in z.namelist() if n.lower().endswith(".csv")][0]
-        return pd.read_csv(z.open(name), encoding="latin-1")
+        names = [n for n in z.namelist() if n.lower().endswith(".csv")]
+        if not names:
+            raise RuntimeError(f"no CSV in Seoul archive from {URL}")
+        return pd.read_csv(z.open(names[0]), encoding="latin-1")
 
 
 def main():
@@ -34,9 +48,16 @@ def main():
     rename = {}
     for c in df.columns:
         cl = c.strip().lower()
-        for key, std in [("rented", "rides"), ("temperature", "temp_c"), ("humidity", "humidity"),
-                         ("wind", "wind_ms"), ("visibility", "visibility"), ("rainfall", "rain_mm"),
-                         ("seasons", "season"), ("functioning", "functioning")]:
+        for key, std in [
+            ("rented", "rides"),
+            ("temperature", "temp_c"),
+            ("humidity", "humidity"),
+            ("wind", "wind_ms"),
+            ("visibility", "visibility"),
+            ("rainfall", "rain_mm"),
+            ("seasons", "season"),
+            ("functioning", "functioning"),
+        ]:
             if cl.startswith(key):
                 rename[c] = std
         if cl == "hour":
@@ -64,23 +85,44 @@ def main():
     df = df.sample(frac=1, random_state=0).reset_index(drop=True)
     df["is_train"] = df.index < int(len(df) * 0.75)
     shape = df[df["is_train"]].groupby(["season", "daytype", "hour"])["rides"].median()
-    df["expected"] = shape.reindex(pd.MultiIndex.from_frame(df[["season", "daytype", "hour"]])).to_numpy()
+    df["expected"] = shape.reindex(
+        pd.MultiIndex.from_frame(df[["season", "daytype", "hour"]])
+    ).to_numpy()
     df = df.dropna(subset=["expected"])
     df = df[df["expected"] >= config.EXPECTED_FLOOR].reset_index(drop=True)
-    df["suppressed"] = (df["rides"] < config.SUPPRESSION_RATIO * df["expected"]).astype(int)
+    df["suppressed"] = (df["rides"] < config.SUPPRESSION_RATIO * df["expected"]).astype(
+        int
+    )
 
     tr, te = df[df["is_train"]], df[~df["is_train"]]
-    model = Pipeline([("scale", StandardScaler()), ("clf", LogisticRegression(max_iter=2000))])
+    model = Pipeline(
+        [("scale", StandardScaler()), ("clf", LogisticRegression(max_iter=2000))]
+    )
     model.fit(tr[FEATURES], tr["suppressed"])
     p = model.predict_proba(te[FEATURES])[:, 1]
     m = metrics(te["suppressed"], p)
 
-    row = pd.DataFrame([{"city": "Seoul", "n_test": m["n"], "base_rate": round(m["base_rate"], 3),
-                         "auroc": round(m["auroc"], 3), "brier": round(m["brier"], 3),
-                         "ece": round(m["ece"], 3)}])
+    row = pd.DataFrame(
+        [
+            {
+                "city": "Seoul",
+                "n_test": m["n"],
+                "base_rate": round(m["base_rate"], 3),
+                "auroc": round(m["auroc"], 3),
+                "brier": round(m["brier"], 3),
+                "ece": round(m["ece"], 3),
+            }
+        ]
+    )
     config.TABLES.mkdir(parents=True, exist_ok=True)
     row.to_csv(config.TABLES / "seoul_validation.csv", index=False)
-    header = "| " + " | ".join(row.columns) + " |\n| " + " | ".join("---" for _ in row.columns) + " |\n"
+    header = (
+        "| "
+        + " | ".join(row.columns)
+        + " |\n| "
+        + " | ".join("---" for _ in row.columns)
+        + " |\n"
+    )
     body = "| " + " | ".join(str(v) for v in row.iloc[0]) + " |\n"
     (config.TABLES / "seoul_validation.md").write_text(header + body)
     print(row.to_string(index=False))
