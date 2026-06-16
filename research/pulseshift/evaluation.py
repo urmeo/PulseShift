@@ -34,16 +34,32 @@ def expected_calibration_error(y_true, y_prob, n_bins=10):
 
 
 def bootstrap_ci(
-    y_true, y_prob, fn, n=1000, seed=0, alpha=0.05, require_two_classes=False
+    y_true,
+    y_prob,
+    fn,
+    n=1000,
+    seed=0,
+    alpha=0.05,
+    require_two_classes=False,
+    groups=None,
 ):
-    """Percentile bootstrap CI for a (y_true, y_prob) metric."""
+    """Percentile bootstrap CI; resamples clusters when groups is given."""
     rng = np.random.default_rng(seed)
     y_true = np.asarray(y_true)
     y_prob = np.asarray(y_prob)
-    idx = np.arange(len(y_true))
+    if groups is not None:
+        groups = np.asarray(groups)
+        members = [np.where(groups == g)[0] for g in np.unique(groups)]
+
+    def draw():
+        if groups is None:
+            return rng.choice(len(y_true), size=len(y_true), replace=True)
+        picked = rng.integers(0, len(members), len(members))
+        return np.concatenate([members[i] for i in picked])
+
     vals = []
     for _ in range(n):
-        s = rng.choice(idx, size=len(idx), replace=True)
+        s = draw()
         if require_two_classes and len(np.unique(y_true[s])) < 2:
             continue
         vals.append(fn(y_true[s], y_prob[s]))
