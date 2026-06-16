@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pulseshift import config, ram, safety
+from pulseshift import airquality, config, ram, safety
 from pulseshift.evaluation import bootstrap_ci, metrics
 from pulseshift.features import MODEL_FEATURES, heat_index_f
 from pulseshift.models import fit_logistic
@@ -69,6 +69,54 @@ def test_policy_never_recommends_unsafe_hour():
     )
     audit = safety.audit(ram.recommend(df))
     assert audit["unsafe_recommendations"] == 0 and audit["all_safe"]
+
+
+def test_hourly_aqi_join():
+    """Panel AQI uses the hourly series where present, daily fallback otherwise."""
+    panel = load_panel()
+    assert "aqi_hourly" in panel.columns
+    present = panel["aqi_hourly"].notna()
+    assert present.mean() > 0.5
+    assert (panel.loc[present, "aqi"] == panel.loc[present, "aqi_hourly"]).all()
+
+
+def _synthetic_aqi_panel():
+    """Within-day AQI effect plus a day-level confounder correlated with daily AQI."""
+    rng = np.random.default_rng(0)
+    rows = []
+    for d in range(12):
+        start = pd.Timestamp("2024-01-01") + pd.Timedelta(days=d)
+        day_mean = 20 * d  # rising daily AQI
+        day_boost = 0.02 * d  # confounder: busy days are also dirty days
+        for h in range(24):
+            aqi = day_mean + 40 + 20 * np.sin(2 * np.pi * h / 24)
+            ratio = 1.0 - 0.004 * aqi + day_boost + rng.normal(0, 0.002)
+            rows.append(
+                {
+                    "ts_local": start + pd.Timedelta(hours=h),
+                    "hour": h,
+                    "aqi": aqi,
+                    "rides_total": 100 * ratio,
+                    "expected_rides": 100.0,
+                    "temp_f": rng.normal(50, 2),
+                    "precip_in": 0.0,
+                    "wind_mph": rng.normal(8, 1),
+                    "humidity": rng.normal(60, 3),
+                    "season": "winter",
+                    "is_weekend": int(start.dayofweek >= 5),
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def test_within_day_removes_day_confounder():
+    """Within-day FE recovers the true -0.2/+50 slope; between-day is biased up."""
+    panel = _synthetic_aqi_panel()
+    within = airquality.within_day_effect(panel, n_boot=200)
+    between = airquality.between_day_effect(panel, n_boot=200)
+    assert within["effect_per_50"] == pytest.approx(-0.2, abs=0.05)
+    assert within["ci_low"] <= within["effect_per_50"] <= within["ci_high"]
+    assert between["effect_per_50"] > within["effect_per_50"]
 
 
 def test_served_model_matches_export():
