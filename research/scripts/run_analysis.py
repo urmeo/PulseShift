@@ -257,6 +257,7 @@ def aqi_identification(work):
     between = airquality.between_day_effect(work)
     within = airquality.within_day_effect(work)
     episodes = airquality.smoke_episodes(work, aqi_thresh=100)
+    plots.aqi_identification_plot(between, within)
     ladder = pd.DataFrame(
         [
             {"identification": "between-day (controlled)", **between},

@@ -88,8 +88,36 @@ def exposure_response(panel):
         ax.set_xlabel(label)
         ax.set_ylabel("Suppression rate")
     axes[0].set_title("Heat response")
-    axes[1].set_title("Smoke response")
+    axes[1].set_title("Air-quality response (marginal, confounded)")
     _save(fig, "exposure_response.png")
+
+
+def aqi_identification_plot(between, within):
+    """Forest plot: AQI effect collapses toward zero under stricter identification."""
+    rows = [
+        ("Between-day\n(controlled)", between),
+        ("Within-day\nfixed effects", within),
+    ]
+    fig, ax = plt.subplots(figsize=(6.5, 3))
+    for y, (label, est) in enumerate(rows):
+        ax.errorbar(
+            est["effect_per_50"],
+            y,
+            xerr=[
+                [est["effect_per_50"] - est["ci_low"]],
+                [est["ci_high"] - est["effect_per_50"]],
+            ],
+            fmt="o",
+            color="#36c",
+            capsize=4,
+        )
+        ax.text(est["effect_per_50"], y + 0.18, label, ha="center", fontsize=9)
+    ax.axvline(0, color="#a33", ls="--", lw=1)
+    ax.set_yticks([])
+    ax.set_ylim(-0.5, 1.6)
+    ax.set_xlabel("Ride-ratio change per +50 AQI")
+    ax.set_title("Air-quality effect by identification strategy")
+    _save(fig, "aqi_identification.png")
 
 
 def smoke_event(panel, start="2023-06-05", end="2023-06-12"):
