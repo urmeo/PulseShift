@@ -55,13 +55,13 @@ The full write-up, figures, and confidence intervals are in [paper/paper.md](pap
 
 ## Tech stack
 
-| Layer | Choice |
+| Layer | Tools |
 | --- | --- |
-| App | Vanilla HTML, CSS, and JavaScript — zero dependencies, static-hostable |
-| Model | scikit-learn logistic regression, exported to JSON and run in the browser |
+| App | HTML, CSS, JavaScript, zero-dependency, static |
+| Model | scikit-learn, logistic regression, in-browser inference |
 | Pipeline | Python, pandas, NumPy, scikit-learn, matplotlib |
-| Data | Capital Bikeshare, NOAA Local Climatological Data, EPA AirData, CAMS hourly air quality (all public) |
-| Quality | pytest, GitHub Actions CI, bootstrap confidence intervals, decision-curve analysis |
+| Data | Capital Bikeshare, NOAA LCD, EPA AirData, CAMS hourly AQI |
+| Quality | pytest, GitHub Actions, bootstrap CIs, decision-curve analysis |
 
 ## Reproduce
 
