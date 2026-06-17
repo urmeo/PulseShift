@@ -98,6 +98,7 @@
     0.33,
     0.409
   ],
+  "ram_pct_discounted_50": 0.184,
   "safety": {
     "n_shifts": 1111,
     "n_cancel": 5,
@@ -138,6 +139,32 @@
       "ci_low": 0.94,
       "ci_high": 1.085,
       "median_aqi_polluted": 118.0
+    },
+    "measurement_error": {
+      "cams_epa_corr": 0.726,
+      "reliability": 0.732,
+      "rows": [
+        {
+          "reliability": "empirical",
+          "rho": 0.73,
+          "corrected_per_50": -0.033
+        },
+        {
+          "reliability": "assumed",
+          "rho": 0.7,
+          "corrected_per_50": -0.034
+        },
+        {
+          "reliability": "assumed",
+          "rho": 0.5,
+          "corrected_per_50": -0.048
+        },
+        {
+          "reliability": "assumed",
+          "rho": 0.3,
+          "corrected_per_50": -0.08
+        }
+      ]
     }
   },
   "aqi_coefficient": [
