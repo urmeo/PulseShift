@@ -62,7 +62,7 @@ The full pipeline, paper, and tests live in [`research/`](research/) and [`paper
 make all       # venv, analysis, model export, tests
 ```
 
-Requires Python 3.9–3.12 (CI tests all three). Or step by step, from `research/`: see [`research/README.md`](research/README.md). The processed panel is committed (with a checksum and a column-level [data dictionary](research/data/README.md)), so analysis and tests run without re-downloading the raw data.
+Requires Python 3.9–3.12 (all tested in CI). Or step by step, from `research/`: see [`research/README.md`](research/README.md). The processed panel is committed (with a checksum and a column-level [data dictionary](research/data/README.md)), so analysis and tests run without re-downloading the raw data.
 
 ## Future scope
 
