@@ -33,6 +33,9 @@ cd research/data/processed && shasum -a 256 -c panel.sha256   # expects: panel.c
 (`active_hour == True`): 24,354 hours, split 16,150 (2022–2023, train) / 8,204 (2024, test). The
 within-day air-quality estimator uses the 881 of 1,096 days that carry genuine intraday AQI variation.
 
+`pm25` (raw PM2.5) is provided for downstream reuse and reproducibility; the model and analysis use the
+composite `aqi`, so `pm25` is published but not consumed here.
+
 ## Columns (31)
 
 | Column | Type | Unit / values | Description | Source |
