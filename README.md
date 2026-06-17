@@ -62,7 +62,7 @@ The full pipeline, paper, and tests live in [`research/`](research/) and [`paper
 make all       # venv, analysis, model export, tests
 ```
 
-Or step by step, from `research/`: see [`research/README.md`](research/README.md). The processed panel is committed, so analysis and tests run without re-downloading the raw data.
+Requires Python 3.9–3.12 (CI tests all three). Or step by step, from `research/`: see [`research/README.md`](research/README.md). The processed panel is committed (with a checksum and a column-level [data dictionary](research/data/README.md)), so analysis and tests run without re-downloading the raw data.
 
 ## Future scope
 
@@ -72,6 +72,12 @@ Or step by step, from `research/`: see [`research/README.md`](research/README.md
 - [ ] Neighborhood-level equity analysis
 - [ ] Expose the forecast as a small API
 
+## Contributing
+
+Setup, test, and reproduction steps are in [`CONTRIBUTING.md`](CONTRIBUTING.md); participation is
+governed by the [Code of Conduct](CODE_OF_CONDUCT.md), and vulnerabilities go through the
+[security policy](SECURITY.md).
+
 ## License
 
-[MIT License](LICENSE)
+[MIT License](LICENSE) © 2026 Urme Bose
