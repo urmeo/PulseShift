@@ -10,13 +10,16 @@ function heatIndex(t, rh) {
   return Math.round(hi * 10) / 10;
 }
 
+const COLD_BASE = (M.stress && M.stress.cold_base_f) ?? 55;   // exported from config; fallback for older model.json
+const HEAT_BASE = (M.stress && M.stress.heat_base_f) ?? 85;
+
 function features(input) {
   const angle = (2 * Math.PI * input.hour) / 24;
   const hi = heatIndex(input.temp, input.humidity);
   return {
     heat_index_f: hi,
-    cold_stress: Math.max(0, 55 - input.temp),
-    heat_stress: Math.max(0, hi - 85),
+    cold_stress: Math.max(0, COLD_BASE - input.temp),
+    heat_stress: Math.max(0, hi - HEAT_BASE),
     aqi: input.aqi,
     humidity: input.humidity,
     wind_mph: input.wind,
@@ -153,11 +156,18 @@ async function liveWeather() {
       const aq = await fetch(
         "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=38.8951&longitude=-77.0364&hourly=us_aqi&forecast_days=2&timezone=America%2FNew_York"
       ).then((r) => r.json());
-      aqiByHour = {};
-      aq.hourly.time.forEach((t, i) => { aqiByHour[t.slice(0, 13)] = aq.hourly.us_aqi[i]; });
-      const nowAqi = aqiByHour[localHourKey(now.startTime)];
-      if (nowAqi != null) $("aqi").value = Math.round(nowAqi);
-    } catch { aqiByHour = null; }
+      if (aq && aq.hourly && Array.isArray(aq.hourly.time) && Array.isArray(aq.hourly.us_aqi)) {
+        aqiByHour = {};
+        aq.hourly.time.forEach((t, i) => { aqiByHour[t.slice(0, 13)] = aq.hourly.us_aqi[i]; });
+        const nowAqi = aqiByHour[localHourKey(now.startTime)];
+        if (nowAqi != null) $("aqi").value = Math.round(nowAqi);
+      } else {
+        console.warn("PulseShift: unexpected air-quality response; falling back to a constant AQI");
+      }
+    } catch (e) {
+      aqiByHour = null;
+      console.warn("PulseShift: hourly air-quality fetch failed; falling back to a constant AQI", e);
+    }
 
     btn.textContent = "Live DC weather loaded";
     update();
@@ -169,7 +179,8 @@ async function liveWeather() {
       : fallbackAqi >= M.safety.aqi_unsafe
         ? "Air quality is unsafe — stay indoors."
         : "No safe daytime hour in the forecast window — consider indoors.";
-  } catch {
+  } catch (e) {
+    console.warn("PulseShift: live weather fetch failed", e);
     btn.textContent = "Live weather unavailable — enter manually";
   }
 }
