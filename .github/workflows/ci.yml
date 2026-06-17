@@ -24,9 +24,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r research/requirements.txt -r research/requirements-dev.txt
       - name: Ruff lint
-        run: ruff check research/pulseshift research/tests
+        run: ruff check research/pulseshift research/scripts research/tests
       - name: Ruff format check
-        run: ruff format --check research/pulseshift research/tests
+        run: ruff format --check research/pulseshift research/scripts research/tests
       - name: mypy
         run: mypy research/pulseshift --ignore-missing-imports
 
