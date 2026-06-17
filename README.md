@@ -44,8 +44,6 @@ A logistic regression predicts whether a given hour of outdoor cycling is suppre
 - **Power, not just a null.** The within-day design reports its minimum detectable effect, so the near-zero air-quality result is a bounded-small effect rather than an underpowered shrug.
 - **Sensitivity over silence.** Every analyst choice — label ratio, activity floor, shift window, AQI threshold — is swept and reported, with the spec and the confirmatory/exploratory split fixed in [`paper/preregistration.md`](paper/preregistration.md).
 
-The full pipeline, paper, and tests live in [`research/`](research/) and [`paper/`](paper/).
-
 ## Tech stack
 
 | Layer | Choice |
@@ -74,10 +72,10 @@ Requires Python 3.9–3.12 (all tested in CI). Or step by step, from `research/`
 
 ## Contributing
 
-Setup, test, and reproduction steps are in [`CONTRIBUTING.md`](CONTRIBUTING.md); participation is
-governed by the [Code of Conduct](CODE_OF_CONDUCT.md), and vulnerabilities go through the
-[security policy](SECURITY.md).
+- Setup, test, and reproduction steps — [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- Participation is governed by the [Code of Conduct](CODE_OF_CONDUCT.md)
+- Vulnerabilities go through the [security policy](SECURITY.md)
 
 ## License
 
-[MIT License](LICENSE) © 2026 Urme Bose
+[MIT License](LICENSE)
