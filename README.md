@@ -1,8 +1,12 @@
 # PulseShift
 
+[![CI](https://github.com/urme-b/PulseShift/actions/workflows/ci.yml/badge.svg)](https://github.com/urme-b/PulseShift/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Live demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://urme-b.github.io/PulseShift/)
+
 PulseShift predicts whether weather or air quality will ruin a planned outdoor session, and suggests the safest time to do it anyway. It's a single web page that runs the model right in your browser, with a Python pipeline and a full write-up behind it, built on three years of real Washington DC data.
 
-Live demo: https://urme-b.github.io/PulseShift/
+**▶ [Try the live demo](https://urme-b.github.io/PulseShift/)**
 
 ## Using it
 
