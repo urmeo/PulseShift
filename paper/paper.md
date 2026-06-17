@@ -1,4 +1,4 @@
-# Does Air Quality Suppress Outdoor Activity? Seasonal Confounding, Hourly Identification, and a Calibrated Decision Tool
+# Does Air Quality Suppress Outdoor Mobility? Seasonal Confounding, Hourly Identification, and a Calibrated Decision Tool
 
 Urme B.
 
@@ -25,21 +25,24 @@ de-confounding. Second, air
 quality adds nothing to forecasting once weather is included (ΔAUROC and ΔAUPRC ≈ 0): weather is the
 entire signal. Third, calibration, not discrimination, decides whether the forecast is usable:
 class-weighting, a common default, leaves the model badly over-confident (Brier 0.13, ECE 0.25) while
-the unweighted served model is well calibrated (Brier 0.021, ECE 0.044) at AUROC 0.94. A
-safety-constrained time-shift policy recovers ~37% of otherwise-lost activity while never recommending
-an unsafe hour, and the framework transfers to Seoul (AUROC 0.87). The lesson is that the headline
-air-quality effect reported across this literature is largely seasonal confounding, and only hourly,
-within-day identification corrects it.
+the unweighted served model is well calibrated (Brier 0.021, ECE 0.044) at AUROC 0.94 — though that
+discrimination is partly mechanical, since the label is defined off the same weather. A
+safety-constrained time-shift policy could recover up to ~37% of otherwise-lost mobility (an upper bound;
+~18% at 50% transfer efficiency) while never recommending an unsafe hour, and the framework transfers to
+Seoul (AUROC 0.87). The lesson is that the headline air-quality effect reported across this literature is
+largely seasonal confounding, and only hourly, within-day identification corrects it.
 
 **Keywords:** outdoor mobility; bike-share; physical activity; air quality; wildfire smoke; confounding;
 fixed effects; calibration; decision curve analysis.
 
 ## 1. Introduction
 
-Physical inactivity is a large, preventable health burden, and climate change degrades the conditions
-under which health-preserving movement happens. Air quality has become a central worry: wildfire smoke
-now routinely pushes eastern US cities into "unhealthy" territory, and a natural question is how much
-that smoke suppresses outdoor activity. The usual evidence is an association between *daily* air
+Outdoor mobility — the walking and cycling trips that make up active travel — is sensitive to weather
+and air quality, and how much pollution actually deters it is contested. Active travel also underpins
+physical activity, itself a large preventable health burden; but this study measures *mobility*, not
+exercise, and we keep that distinction throughout (Section 8). Air quality has become a central worry:
+wildfire smoke now routinely pushes eastern US cities into "unhealthy" territory, and a natural question
+is how much that smoke suppresses outdoor trips. The usual evidence is an association between *daily* air
 quality and *daily* activity. That association is treacherous, because daily air quality is seasonal:
 high-AQI days are disproportionately hot, stagnant summer days, which are also the busiest days for
 outdoor activity. A regression of activity on daily pollution can therefore report almost anything,
@@ -145,7 +148,7 @@ We estimate the air-quality effect on the ride ratio at three levels of rigor:
 As a fourth check we match high-AQI hours (AQI ≥ 100) to clean hours of the same season and hour and
 compare ride ratios directly.
 
-### 5.3 Recovered activity and safety
+### 5.3 Recovered mobility and safety
 
 The recommender keeps each active hour or shifts it to the lowest-risk hour within ±3 h under a hard
 safety envelope (heat index < 103 °F, AQI < 150) and a minimum-benefit rule; RAM = `Σ E_t·(risk_keep −
@@ -172,13 +175,19 @@ suppressed. We train on 2022–2023 (16,150 hours) and test on 2024 (8,204 hours
 0.32–0.64, Brier 0.017–0.026, ECE 0.036–0.052.*
 
 Features lift AUROC from 0.69 to 0.94; gradient boosting ties the logistic (0.94 each, edging only
-AUPRC). But discrimination is not the point. Class weighting, a common default for imbalance, leaves
+AUPRC). That discrimination is partly mechanical — the label dichotomizes the ride ratio against a
+climatology built from the same calendar the model sees — so AUROC overstates genuine skill; we treat
+the continuous within-day ride ratio (Section 6.3), not the binary AUROC, as the substantive estimand
+for the air-quality question, and keep the binary only as a deployment convenience for the app. But
+discrimination is not the point. Class weighting, a common default for imbalance, leaves
 the model badly over-confident (Brier 0.128, worse than the baseline's 0.027; ECE 0.253), while the
 unweighted served model is well calibrated (Brier 0.021, ECE 0.044), and post-hoc isotonic calibration
 also repairs the weighted model (ECE 0.253 → 0.064; Figure `reliability`). Net benefit is positive
 across low-to-moderate thresholds and maximized at the lowest ones (Figure `decision_curve`); at a 10:1
 cost ratio (missed suppression vs unnecessary shift) the threshold is 0.09, flagging 20% of hours at
-0.90 sensitivity and 0.82 specificity. Discrimination across all models is shown in Figure `roc`.
+0.90 sensitivity and 0.82 specificity. (Net benefit is adapted from clinical decision-curve analysis;
+the shift-vs-keep utility mapping is illustrative, not a calibrated cost model.) Discrimination across
+all models is shown in Figure `roc`.
 
 ### 6.2 Air quality adds no forecasting value
 
@@ -204,7 +213,7 @@ it is a weather forecast.
 
 The marginal curve falls as AQI rises (Figure `exposure_response`): suppression drops from ~7.5% in
 clean air to near zero above 150 AQI, because dirty hours are summer hours with peak ridership — taken
-at face value, pollution looks *good* for activity. Controlling for weather and season across 1,096
+at face value, pollution looks *good* for mobility. Controlling for weather and season across 1,096
 days flips the sign to a large negative effect (−10.9 points per +50 AQI). But that estimate is still
 identified from between-day variation, and when day fixed effects absorb every day-level confounder —
 on the 881 days that carry genuine intraday AQI variation — the effect collapses to −2.4 points with a
@@ -218,24 +227,35 @@ CI 0.94–1.09, day-clustered), and the null holds at AQI thresholds of 80, 100,
 reading is that pollution's effect on this mobility proxy is, at most, small, and that the large effects
 a daily analysis reports are an artifact of season.
 
+A null on a *modeled* exposure invites the objection that it is attenuation, not absence. We bound it.
+CAMS daily AQI tracks EPA ground-station daily AQI at r = 0.73, implying a reliability of ≈ 0.73, so the
+classical attenuation-corrected within-day effect (β / reliability) is −3.3 points; even under an
+aggressive assumed reliability of 0.5 it is −4.8 points, and only at reliability 0.3 does it approach
+−8.0 — still short of the −10.9 between-day estimate and within the design's detectable range. Exposure
+error attenuates the within-day estimate but does not rescue a large effect; ground-station hourly data
+would tighten this rather than overturn it.
+
 The June 2023 Canadian-wildfire smoke is the vivid exception that proves the rule: on 8 June, daily
 ridership fell to 0.76× of expected. But as a single day it is only the 6th-lowest of 66 summer
 weekdays and coincided with official advisories, so it cannot carry a population claim; the within-day
 estimate is the credible evidence, and it is modest (Figure `smoke_event`).
 
-### 6.4 What does suppress activity
+### 6.4 What suppresses mobility
 
 With precipitation and a cold-stress hinge the served model recovers correctly-signed weather drivers:
 high humidity (+0.96), cold stress (+0.54), and rain (+0.40) raise suppression, while heat loads
 negative (heat index −0.69, heat hinge −0.81) because hot hours coincide with peak summer ridership;
 all coefficients are associational. Cold and rain, not heat or smoke, dominate suppression in this city.
 
-### 6.5 Recovered activity and safety
+### 6.5 Recovered mobility and safety
 
-The policy could recover ~37% (95% CI 33–41%) of otherwise-lost activity — about 93,000 rides
-(~1.2M rider-minutes) against ~251,000 lost under no adaptation — an upper bound under perfect,
-uncapped demand transfer (1,111 shifts into 755 distinct slots). It is conservative (14% of hours
-shifted, 0.06% cancelled) and safe by construction: no recommendation falls in unsafe conditions, and
+RAM is an illustrative ceiling, not an estimate: it assumes perfect, uncapped demand transfer onto the
+model's own risk surface, and real behavioral substitution is unmeasured. Under that ceiling the policy
+recovers ~37% (95% CI 33–41%) of otherwise-lost mobility — about 93,000 rides (~1.2M rider-minutes)
+against ~251,000 lost under no adaptation (1,111 shifts into 755 distinct slots); at a more realistic 50%
+transfer efficiency it is ~18%. What is solid is not the magnitude but the safety: the policy is
+conservative (14% of hours shifted, 0.06% cancelled) and safe by construction — no recommendation falls
+in unsafe conditions, and
 each shift lowers predicted risk by 0.16 on average (Figure `ram_by_month`).
 
 ### 6.6 Robustness, transfer, and subgroups
@@ -259,10 +279,13 @@ and a bounded-near-null within-day effect, and only the last holds season fixed.
 activity on daily pollution (the norm) are therefore likely to overstate the effect, and hourly data is
 what exposes the gap. Second, calibration, not discrimination, is what makes a forecast usable: a model
 excellent on AUROC is unusable when class-weighted, and reporting discrimination alone would have hidden
-a Brier worse than the baseline. Despite a deliberately modest model, a calibrated risk score plus a
-safety-constrained policy recovers a meaningful, bounded share of lost activity and transfers to a
-second city. The PulseShift app ships exactly this served model client-side; this paper is its evidence
-layer.
+a Brier worse than the baseline. Neither result is a new mechanism — that daily exposure is
+season-confounded is textbook epidemiology — so we frame the contribution as what it is: a reproducible
+cautionary case study, on a behavioural outcome where this literature rarely applies within-day
+identification, packaged with a calibrated, safety-audited decision template that others can refit. It
+is also a single city: the de-confounding result should be treated as a DC finding until the same
+pipeline (city-configurable by design) reproduces the between- vs within-day gap elsewhere. The
+PulseShift app ships exactly this served model client-side; this paper is its evidence layer.
 
 ## 8. Limitations
 
