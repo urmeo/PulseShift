@@ -26,8 +26,9 @@ abstract: >-
   planned outdoor session in Washington DC and recommends the safest way
   to keep it, served as a calibrated model that runs in the browser. The
   outcome is outdoor mobility, proxied by bike-share ridership. Its
-  evidence layer shows that the daily air-quality association with
-  mobility is largely seasonal confounding: a within-day fixed-effects
-  analysis on hourly data collapses the apparent effect toward zero,
-  while calibration — not discrimination — governs whether the forecast
-  can be trusted.
+  evidence layer shows that, in this single-city case study, the daily
+  air-quality association with mobility is largely seasonal confounding:
+  a within-day fixed-effects analysis on hourly data collapses the
+  apparent effect toward zero, while calibration — not discrimination —
+  governs whether the forecast can be trusted. A second city (Seoul) is a
+  method-transfer check, not a replication of the confounding result.
