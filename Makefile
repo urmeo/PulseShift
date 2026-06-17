@@ -31,8 +31,9 @@ test: setup
 	$(RUN) -m pytest tests/ -q
 
 lint: setup
-	$(PIP) install -q ruff
 	$(VENV)/bin/ruff check research/pulseshift research/scripts research/tests
+	$(VENV)/bin/ruff format --check research/pulseshift research/tests
+	$(VENV)/bin/mypy research/pulseshift --ignore-missing-imports
 
 clean:
 	rm -rf $(VENV) research/data/raw research/data/interim
