@@ -271,7 +271,15 @@ def aqi_identification(work):
         ]
     )
     _write_table(power, "aqi_power")
-    return {"between_day": between, "within_day": within, "episodes": episodes}
+
+    error = airquality.measurement_error_bound(work, within["effect_per_50"])
+    _write_table(pd.DataFrame(error["rows"]), "measurement_error")
+    return {
+        "between_day": between,
+        "within_day": within,
+        "episodes": episodes,
+        "measurement_error": error,
+    }
 
 
 def aqi_coefficient(work):
@@ -448,6 +456,7 @@ def main():
         "served_ci": ci,
         "ram": {k: v for k, v in ram_stats.items() if k != "per_hour"},
         "ram_pct_ci": ram_ci,
+        "ram_pct_discounted_50": round(0.5 * ram_stats["ram_pct_of_lost"], 3),
         "safety": audit,
         "smoke_event": smoke_context,
         "aqi_identification": aqi,
