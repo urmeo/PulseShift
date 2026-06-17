@@ -7,6 +7,7 @@ threshold sensitivity -> summary.
 """
 
 import json
+import sys
 
 import numpy as np
 import pandas as pd
@@ -425,27 +426,53 @@ def floor_sensitivity(panel):
 
 
 def main():
+    """Run the full analysis (~2-4 min: GBM fit + day-clustered bootstraps dominate)."""
+    total = 18
+    done = [0]
+
+    def step(label):
+        done[0] += 1
+        print(f"[{done[0]:2d}/{total}] {label}", file=sys.stderr, flush=True)
+
+    step("load panel")
     panel = load_panel()
     work = active(panel)
     train_all, test = temporal_split(work)
 
+    step("fit models (logistic, isotonic, gradient boosting)")
     preds, served = fit_models(train_all, work, test)
+    step("model comparison")
     comparison = model_comparison(test, preds)
+    step("served-model bootstrap CIs")
     ci = served_confidence_intervals(test, preds["unw"])
+    step("coefficients + exposure response")
     coefficients_and_exposure(work, served)
+    step("decision curve + cost thresholds")
     cost_rows = decision_and_cost(test, preds["unw"])
+    step("figures")
     figures(test, panel, work, preds, comparison)
+    step("recovered active minutes + safety audit")
     test, ram_stats, audit, ram_ci = recovered_active_minutes(test, preds["unw"])
+    step("smoke event")
     smoke_context = smoke_event(panel)
+    step("AQI identification ladder (day-clustered bootstrap)")
     aqi = aqi_identification(work)
+    step("AQI coefficient (hourly vs daily)")
     aqi_coef = aqi_coefficient(work)
+    step("feature ablation")
     ablation = feature_ablation(train_all, test)
+    step("subgroups")
     burden = subgroups(test, panel)
+    step("label sensitivity")
     label_sensitivity(work)
+    step("policy sensitivity")
     policy_sens = policy_sensitivity(test, preds["unw"])
+    step("smoke sensitivity")
     smoke_sens = smoke_sensitivity(work)
+    step("floor sensitivity")
     floor_sens = floor_sensitivity(panel)
 
+    step("write summary.json")
     summary = {
         "panel_rows": len(panel),
         "active_hours": len(work),
