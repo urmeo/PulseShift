@@ -2,8 +2,8 @@
 
 PulseShift is a research artifact: a static, client-side web page plus an offline Python
 analysis pipeline. It runs no servers, stores no user data, has no authentication, and ships
-no secrets or API keys. The browser app calls only public, keyless endpoints
-(`api.weather.gov` and Open-Meteo) and collects nothing.
+no secrets or API keys. The browser app calls only two public, keyless APIs — the U.S.
+National Weather Service and Open-Meteo — and collects nothing.
 
 ## Supported versions
 
