@@ -141,6 +141,7 @@ function bestSafeHour(periods, aqiByHour, fallbackAqi) {
 async function liveWeather() {
   const btn = $("live");
   btn.textContent = "Loading…";
+  btn.setAttribute("aria-busy", "true");
   try {
     const point = await fetch("https://api.weather.gov/points/38.8951,-77.0364").then((r) => r.json());
     const hourly = await fetch(point.properties.forecastHourly).then((r) => r.json());
@@ -182,6 +183,8 @@ async function liveWeather() {
   } catch (e) {
     console.warn("PulseShift: live weather fetch failed", e);
     btn.textContent = "Live weather unavailable — enter manually";
+  } finally {
+    btn.removeAttribute("aria-busy");
   }
 }
 
