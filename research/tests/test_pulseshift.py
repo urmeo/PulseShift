@@ -126,6 +126,20 @@ def test_smoke_episode_ci_ordered():
     assert e["ci_low"] <= e["ride_ratio_vs_clean"] <= e["ci_high"]
 
 
+def test_measurement_error_deattenuates():
+    """Lower reliability scales the corrected effect further from zero."""
+    panel = load_panel()
+    panel["aqi_hourly"] = panel["aqi"]  # synthetic perfect hourly coverage
+    panel["aqi_epa_daily"] = panel["aqi"]
+    out = airquality.measurement_error_bound(panel, beta_per_50=-2.0)
+    by_rho = {
+        r["rho"]: r["corrected_per_50"]
+        for r in out["rows"]
+        if r["reliability"] == "assumed"
+    }
+    assert by_rho[0.5] < by_rho[0.7] < 0  # more error -> larger magnitude
+
+
 def test_served_model_matches_export():
     """model.json must reproduce a fresh unweighted fit."""
     model_path = config.ROOT.parent / "model.json"
