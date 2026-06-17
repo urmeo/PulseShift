@@ -1,6 +1,9 @@
 """Climatology baseline and the logistic suppression model."""
 
+from __future__ import annotations
+
 import numpy as np
+import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
@@ -10,7 +13,11 @@ from . import config
 from .features import MODEL_FEATURES
 
 
-def temporal_split(panel, train_years=config.TRAIN_YEARS, test_year=config.TEST_YEAR):
+def temporal_split(
+    panel: pd.DataFrame,
+    train_years: tuple[int, ...] = config.TRAIN_YEARS,
+    test_year: int = config.TEST_YEAR,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     train = panel[panel["year"].isin(train_years)].reset_index(drop=True)
     test = panel[panel["year"] == test_year].reset_index(drop=True)
     return train, test
@@ -21,17 +28,18 @@ class ClimatologyBaseline:
 
     keys = ["season", "daytype", "hour"]
 
-    def fit(self, df):
+    def fit(self, df: pd.DataFrame) -> ClimatologyBaseline:
         self.rates_ = df.groupby(self.keys)["suppressed"].mean()
         self.prior_ = df["suppressed"].mean()
         return self
 
-    def predict_proba(self, df):
+    def predict_proba(self, df: pd.DataFrame) -> np.ndarray:
         idx = list(zip(*[df[k] for k in self.keys]))
-        return np.array([self.rates_.get(k, self.prior_) for k in idx])
+        p = np.array([self.rates_.get(k, self.prior_) for k in idx])
+        return np.column_stack([1.0 - p, p])  # sklearn-style (n, 2)
 
 
-def build_logistic(balanced=True):
+def build_logistic(balanced: bool = True) -> Pipeline:
     return Pipeline(
         [
             ("scale", StandardScaler()),
@@ -45,17 +53,23 @@ def build_logistic(balanced=True):
     )
 
 
-def fit_logistic(train, balanced=True, features=MODEL_FEATURES):
+def fit_logistic(
+    train: pd.DataFrame, balanced: bool = True, features: list[str] = MODEL_FEATURES
+) -> Pipeline:
     model = build_logistic(balanced)
     model.fit(train[features], train["suppressed"])
     return model
 
 
-def fit_gbm(train, features=MODEL_FEATURES):
+def fit_gbm(
+    train: pd.DataFrame, features: list[str] = MODEL_FEATURES
+) -> GradientBoostingClassifier:
     model = GradientBoostingClassifier(random_state=0)
     model.fit(train[features], train["suppressed"])
     return model
 
 
-def predict(model, df, features=MODEL_FEATURES):
+def predict(
+    model, df: pd.DataFrame, features: list[str] = MODEL_FEATURES
+) -> np.ndarray:
     return model.predict_proba(df[features])[:, 1]

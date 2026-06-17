@@ -1,12 +1,15 @@
 """Assemble the hourly analysis panel and define the suppression label."""
 
+from __future__ import annotations
+
+import numpy as np
 import pandas as pd
 
 from . import config, ingest
 from .features import add_temporal, heat_index_f
 
 
-def _expected_rides(df, value="rides_total"):
+def expected_rides(df: pd.DataFrame, value: str = "rides_total") -> np.ndarray:
     """Train-fit shape and volume level; test years carry the last train year (leak-free)."""
     keys = ["season", "daytype", "hour"]
     train = df[df["year"].isin(config.TRAIN_YEARS)]
@@ -22,14 +25,18 @@ def _expected_rides(df, value="rides_total"):
     return shape * level
 
 
-def label_suppression(df, ratio=config.SUPPRESSION_RATIO, floor=config.EXPECTED_FLOOR):
+def label_suppression(
+    df: pd.DataFrame,
+    ratio: float = config.SUPPRESSION_RATIO,
+    floor: float = config.EXPECTED_FLOOR,
+) -> tuple[pd.Series, pd.Series]:
     expected = df["expected_rides"]
     active = expected >= floor
     suppressed = (df["rides_total"] < ratio * expected) & active
     return active, suppressed.astype(int)
 
 
-def build_panel(write=True):
+def build_panel(write: bool = True) -> pd.DataFrame:
     bikes = ingest.load_bikeshare()
     weather = ingest.load_weather()
     aqi = ingest.load_aqi()
@@ -65,11 +72,13 @@ def build_panel(write=True):
     panel["is_weekend"] = (panel["daytype"] == "weekend").astype(int)
     panel["heat_index_f"] = heat_index_f(panel["temp_f"], panel["humidity"])
     panel["precip_in"] = panel["precip_in"].fillna(0)
-    panel["cold_stress"] = (55.0 - panel["temp_f"]).clip(lower=0)
-    panel["heat_stress"] = (panel["heat_index_f"] - 85.0).clip(lower=0)
+    panel["cold_stress"] = (config.COLD_STRESS_BASE_F - panel["temp_f"]).clip(lower=0)
+    panel["heat_stress"] = (panel["heat_index_f"] - config.HEAT_STRESS_BASE_F).clip(
+        lower=0
+    )
     panel = panel.dropna(subset=["temp_f", "humidity", "aqi"]).reset_index(drop=True)
 
-    panel["expected_rides"] = _expected_rides(panel)
+    panel["expected_rides"] = expected_rides(panel)
     panel["active_hour"], panel["suppressed"] = label_suppression(panel)
 
     if write:
@@ -78,12 +87,12 @@ def build_panel(write=True):
     return panel
 
 
-def load_panel():
+def load_panel() -> pd.DataFrame:
     path = config.PROCESSED / "panel.csv.gz"
     if not path.exists():
         return build_panel()
     return pd.read_csv(path, parse_dates=["ts_utc", "ts_local"])
 
 
-def active(panel):
+def active(panel: pd.DataFrame) -> pd.DataFrame:
     return panel[panel["active_hour"]].reset_index(drop=True)

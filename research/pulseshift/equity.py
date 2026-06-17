@@ -1,14 +1,19 @@
 """Subgroup stratification of burden and model performance."""
 
+from __future__ import annotations
+
 import numpy as np
 import pandas as pd
 from sklearn.metrics import brier_score_loss, roc_auc_score
 
 from . import config
 from .evaluation import calibration_fit
+from .panel import expected_rides
 
 
-def strata_metrics(df, group_col, risk_col="risk"):
+def strata_metrics(
+    df: pd.DataFrame, group_col: str, risk_col: str = "risk"
+) -> pd.DataFrame:
     rows = []
     for name, g in df.groupby(group_col):
         y = g["suppressed"].to_numpy()
@@ -28,13 +33,11 @@ def strata_metrics(df, group_col, risk_col="risk"):
     return pd.DataFrame(rows)
 
 
-def rider_burden(panel):
+def rider_burden(panel: pd.DataFrame) -> pd.DataFrame:
     """Suppression rate by rider type over the full 2022-2024 panel."""
-    from .panel import _expected_rides
-
     rows = []
     for kind, col in [("member", "rides_member"), ("casual", "rides_casual")]:
-        expected = _expected_rides(panel, value=col)
+        expected = expected_rides(panel, value=col)
         active = expected >= config.EXPECTED_FLOOR
         suppressed = (
             panel[col].to_numpy() < config.SUPPRESSION_RATIO * expected

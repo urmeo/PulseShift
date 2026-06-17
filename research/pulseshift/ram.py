@@ -1,5 +1,7 @@
 """Time-shift adaptation and Recovered Active Minutes (RAM)."""
 
+from __future__ import annotations
+
 import numpy as np
 import pandas as pd
 
@@ -10,7 +12,9 @@ def _safe(heat_index_f, aqi):
     return (heat_index_f < config.HEAT_UNSAFE_F) & (aqi < config.AQI_UNSAFE)
 
 
-def recommend(panel, risk_col="risk", window=config.SHIFT_WINDOW_H):
+def recommend(
+    panel: pd.DataFrame, risk_col: str = "risk", window: int = config.SHIFT_WINDOW_H
+) -> pd.DataFrame:
     """Per active hour, choose keep or the lowest-risk safe time shift."""
     df = panel.copy()
     df["day"] = df["ts_local"].dt.date
@@ -55,7 +59,7 @@ def recommend(panel, risk_col="risk", window=config.SHIFT_WINDOW_H):
     return df
 
 
-def ram_table(reco, risk_col="risk"):
+def ram_table(reco: pd.DataFrame, risk_col: str = "risk") -> dict:
     """Recovered activity from acting vs doing nothing."""
     expected = reco["expected_rides"].to_numpy()
     no_adapt = expected * (1 - reco[risk_col].to_numpy())

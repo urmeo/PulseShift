@@ -1,9 +1,11 @@
 """Decision-curve net benefit."""
 
+from __future__ import annotations
+
 import numpy as np
 
 
-def net_benefit(y_true, y_prob, thresholds):
+def net_benefit(y_true, y_prob, thresholds) -> tuple[np.ndarray, np.ndarray]:
     y_true = np.asarray(y_true)
     n = len(y_true)
     prevalence = y_true.mean()

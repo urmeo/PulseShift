@@ -1,8 +1,10 @@
 """Download and assemble real DC activity, weather, and air-quality series."""
 
+from __future__ import annotations
+
 import json
-import zipfile
 import urllib.request
+import zipfile
 from pathlib import Path
 
 import pandas as pd
@@ -10,7 +12,7 @@ import pandas as pd
 from . import config
 
 
-def _download(url, dest):
+def _download(url: str, dest) -> Path:
     dest = Path(dest)
     if dest.exists() and dest.stat().st_size > 0:
         return dest
@@ -25,12 +27,12 @@ def _download(url, dest):
     return dest
 
 
-def _to_numeric(series):
+def _to_numeric(series: pd.Series) -> pd.Series:
     cleaned = series.astype(str).str.replace(r"[^0-9.\-]", "", regex=True)
     return pd.to_numeric(cleaned, errors="coerce")
 
 
-def load_bikeshare():
+def load_bikeshare() -> pd.DataFrame:
     """City-wide hourly ride counts (UTC), split by rider type."""
     cache = config.INTERIM / "bikeshare_hourly.csv"
     if cache.exists():
@@ -77,7 +79,7 @@ def load_bikeshare():
     return out
 
 
-def load_weather():
+def load_weather() -> pd.DataFrame:
     """Hourly DCA weather (UTC) from NOAA LCD."""
     cache = config.INTERIM / "weather_hourly.csv"
     if cache.exists():
@@ -143,7 +145,7 @@ def load_weather():
     return hourly
 
 
-def load_aqi():
+def load_aqi() -> pd.DataFrame:
     """Daily DC AQI from EPA AirData."""
     cache = config.INTERIM / "aqi_daily.csv"
     if cache.exists():
@@ -171,7 +173,7 @@ def load_aqi():
     return daily
 
 
-def load_aqi_hourly():
+def load_aqi_hourly() -> pd.DataFrame:
     """Hourly US AQI and PM2.5 for DC (CAMS reanalysis, local time)."""
     cache = config.INTERIM / "aqi_hourly.csv"
     if cache.exists():

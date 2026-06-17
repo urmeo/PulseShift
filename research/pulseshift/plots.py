@@ -1,5 +1,7 @@
 """Publication figures."""
 
+from __future__ import annotations
+
 import matplotlib
 
 matplotlib.use("Agg")
@@ -21,14 +23,14 @@ plt.rcParams.update(
 )
 
 
-def _save(fig, name):
+def _save(fig, name: str) -> None:
     config.FIGURES.mkdir(parents=True, exist_ok=True)
     fig.tight_layout()
     fig.savefig(config.FIGURES / name, bbox_inches="tight")
     plt.close(fig)
 
 
-def reliability_plot(y, raw, calibrated):
+def reliability_plot(y, raw, calibrated) -> None:
     fig, ax = plt.subplots(figsize=(5, 5))
     ax.plot([0, 1], [0, 1], "--", color="gray", lw=1, label="Perfect")
     for prob, lab, color in [
@@ -44,7 +46,7 @@ def reliability_plot(y, raw, calibrated):
     _save(fig, "reliability.png")
 
 
-def roc_plot(curves):
+def roc_plot(curves: dict) -> None:
     from sklearn.metrics import roc_curve
 
     fig, ax = plt.subplots(figsize=(5, 5))
@@ -59,7 +61,7 @@ def roc_plot(curves):
     _save(fig, "roc.png")
 
 
-def decision_plot(y, p):
+def decision_plot(y, p) -> None:
     thresholds = np.linspace(0.01, 0.6, 60)
     model, treat_all = net_benefit(y, p, thresholds)
     fig, ax = plt.subplots(figsize=(6, 4.2))
@@ -74,7 +76,7 @@ def decision_plot(y, p):
     _save(fig, "decision_curve.png")
 
 
-def exposure_response(panel):
+def exposure_response(panel: pd.DataFrame) -> None:
     df = panel.copy()
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     for ax, col, label, edges in [
@@ -92,7 +94,7 @@ def exposure_response(panel):
     _save(fig, "exposure_response.png")
 
 
-def aqi_identification_plot(between, within):
+def aqi_identification_plot(between: dict, within: dict) -> None:
     """Forest plot: AQI effect collapses toward zero under stricter identification."""
     rows = [
         ("Between-day\n(controlled)", between),
@@ -120,7 +122,9 @@ def aqi_identification_plot(between, within):
     _save(fig, "aqi_identification.png")
 
 
-def smoke_event(panel, start="2023-06-05", end="2023-06-12"):
+def smoke_event(
+    panel: pd.DataFrame, start: str = "2023-06-05", end: str = "2023-06-12"
+) -> None:
     df = panel[(panel["ts_local"] >= start) & (panel["ts_local"] < end)]
     fig, ax1 = plt.subplots(figsize=(9, 4))
     ax1.plot(df["ts_local"], df["aqi"], color="#a33", label="AQI")
@@ -134,7 +138,7 @@ def smoke_event(panel, start="2023-06-05", end="2023-06-12"):
     _save(fig, "smoke_event.png")
 
 
-def ram_by_month(reco, recovered):
+def ram_by_month(reco: pd.DataFrame, recovered: pd.Series) -> None:
     df = reco.assign(recovered=recovered.values)
     df["month"] = df["ts_local"].dt.strftime("%Y-%m")
     monthly = df.groupby("month")["recovered"].sum()

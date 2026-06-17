@@ -40,7 +40,7 @@ def fit_models(train_all, work, test):
     calibrated = calibrate_cv(train_all, method="isotonic", cv=5, balanced=True)
     served = fit_logistic(work, balanced=False)  # all-data model shipped in the app
     preds = {
-        "clim": clim.predict_proba(test),
+        "clim": clim.predict_proba(test)[:, 1],
         "unw": predict(logit_unw, test),
         "bal": predict(logit, test),
         "cal": calibrated.predict_proba(test[MODEL_FEATURES])[:, 1],

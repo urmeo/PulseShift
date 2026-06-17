@@ -73,8 +73,8 @@ def main():
     df["daytype"] = np.where(df["is_weekend"] == 1, "weekend", "weekday")
     df["temp_f"] = df["temp_c"] * 9 / 5 + 32
     df["heat_index_f"] = heat_index_f(df["temp_f"], df["humidity"])
-    df["cold_stress"] = (55 - df["temp_f"]).clip(lower=0)
-    df["heat_stress"] = (df["heat_index_f"] - 85).clip(lower=0)
+    df["cold_stress"] = (config.COLD_STRESS_BASE_F - df["temp_f"]).clip(lower=0)
+    df["heat_stress"] = (df["heat_index_f"] - config.HEAT_STRESS_BASE_F).clip(lower=0)
     df["wind_mph"] = df["wind_ms"] * 2.237
     df["precip_in"] = df["rain_mm"] / 25.4
     df["visibility_mi"] = df["visibility"] * 10 / 1609

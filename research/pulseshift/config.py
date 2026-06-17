@@ -38,6 +38,10 @@ EXPECTED_FLOOR = 20  # min typical rides to call an hour "plausibly active"
 SUPPRESSION_RATIO = 0.5  # observed below half of expected -> suppressed
 SENSITIVITY_RATIOS = (0.4, 0.5, 0.6)
 
+# Thermal-stress hinges (shared by the panel, Seoul transfer, and the browser app)
+COLD_STRESS_BASE_F = 55.0  # degrees below this accumulate as cold stress
+HEAT_STRESS_BASE_F = 85.0  # heat-index degrees above this accumulate as heat stress
+
 # Temporal back-testing
 TRAIN_YEARS = (2022, 2023)
 TEST_YEAR = 2024
@@ -50,5 +54,5 @@ MIN_RISK_BENEFIT = 0.05  # only shift when it meaningfully lowers risk
 MEAN_RIDE_MIN = 13.0  # Capital Bikeshare typical ride length
 
 
-def ym_list():
+def ym_list() -> list[str]:
     return [f"{y}{m:02d}" for y in YEARS for m in range(1, 13)]

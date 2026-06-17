@@ -1,10 +1,12 @@
 """Feature construction: heat index, exposure bands, temporal encodings."""
 
+from __future__ import annotations
+
 import numpy as np
 import pandas as pd
 
 
-def heat_index_f(temp_f, humidity):
+def heat_index_f(temp_f, humidity) -> np.ndarray:
     """NWS Rothfusz heat index; identity below 80F / 40% RH."""
     t = np.asarray(temp_f, dtype=float)
     rh = np.asarray(humidity, dtype=float)
@@ -23,7 +25,7 @@ def heat_index_f(temp_f, humidity):
     return np.where(mild, t, np.round(hi, 1))
 
 
-def season_of(month):
+def season_of(month: pd.Series) -> pd.Series:
     return (
         pd.cut(
             month,
@@ -36,7 +38,7 @@ def season_of(month):
     )
 
 
-def add_temporal(df, ts_col="ts_local"):
+def add_temporal(df: pd.DataFrame, ts_col: str = "ts_local") -> pd.DataFrame:
     ts = df[ts_col]
     out = df.copy()
     out["hour"] = ts.dt.hour

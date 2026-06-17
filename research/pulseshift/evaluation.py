@@ -1,5 +1,9 @@
 """Discrimination and calibration metrics."""
 
+from __future__ import annotations
+
+from typing import Callable
+
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
@@ -10,19 +14,19 @@ from sklearn.metrics import (
 )
 
 
-def _logit(p):
+def _logit(p: np.ndarray) -> np.ndarray:
     p = np.clip(p, 1e-6, 1 - 1e-6)
     return np.log(p / (1 - p))
 
 
-def calibration_fit(y_true, y_prob):
+def calibration_fit(y_true, y_prob) -> tuple[float, float]:
     """Cox calibration: regress outcome on predicted logit."""
     model = LogisticRegression(max_iter=2000)
     model.fit(_logit(y_prob).reshape(-1, 1), y_true)
     return float(model.coef_[0][0]), float(model.intercept_[0])
 
 
-def expected_calibration_error(y_true, y_prob, n_bins=10):
+def expected_calibration_error(y_true, y_prob, n_bins: int = 10) -> float:
     bins = np.linspace(0, 1, n_bins + 1)
     idx = np.digitize(y_prob, bins[1:-1])
     ece = 0.0
@@ -36,13 +40,13 @@ def expected_calibration_error(y_true, y_prob, n_bins=10):
 def bootstrap_ci(
     y_true,
     y_prob,
-    fn,
-    n=1000,
-    seed=0,
-    alpha=0.05,
-    require_two_classes=False,
+    fn: Callable,
+    n: int = 1000,
+    seed: int = 0,
+    alpha: float = 0.05,
+    require_two_classes: bool = False,
     groups=None,
-):
+) -> tuple[float, float]:
     """Percentile bootstrap CI; resamples clusters when groups is given."""
     rng = np.random.default_rng(seed)
     y_true = np.asarray(y_true)
@@ -67,7 +71,7 @@ def bootstrap_ci(
     return round(float(lo), 3), round(float(hi), 3)
 
 
-def metrics(y_true, y_prob):
+def metrics(y_true, y_prob) -> dict:
     y_true = np.asarray(y_true)
     y_prob = np.asarray(y_prob)
     slope, intercept = calibration_fit(y_true, y_prob)

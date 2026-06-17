@@ -1,9 +1,13 @@
 """Audit that recommendations never raise exposure."""
 
+from __future__ import annotations
+
+import pandas as pd
+
 from . import config
 
 
-def audit(reco, risk_col="risk"):
+def audit(reco: pd.DataFrame, risk_col: str = "risk") -> dict:
     shifts = reco[reco["action"] == "shift"]
     risk_drop = shifts[risk_col] - shifts["chosen_risk"]
 
