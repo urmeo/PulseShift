@@ -11,7 +11,7 @@ Everything is driven by the `Makefile` from the repository root:
 ```bash
 make setup     # create .venv and install pinned dependencies
 make test      # run the pytest suite
-make analysis  # regenerate every paper table and figure from the committed panel
+make analysis  # regenerate every paper table and figure (~2-4 min; prints per-stage progress)
 make model     # refit and export the served model to model.json / model.js
 make all       # setup + analysis + model + test
 ```
