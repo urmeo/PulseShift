@@ -12,7 +12,7 @@ PulseShift predicts whether weather or air quality will ruin a planned outdoor s
 
 ## Results
 
-Washington DC, 2022–2024. The metrics come from a leak-free out-of-time split (train on 2022–2023, test on 2024), and the model the app actually serves is then refit on all three years.
+Washington DC, 2022 to 2024. The metrics come from a leak-free out-of-time split (train on 2022 and 2023, test on 2024), and the model the app actually serves is then refit on all three years.
 
 What makes a forecast usable isn't raw accuracy, it's calibration. Class-weighting the model leaves it badly overconfident; the unweighted version the app serves stays on the diagonal.
 
@@ -22,7 +22,7 @@ The headline finding is about air quality, and it's a cautionary one: the effect
 
 <img src="paper/figures/aqi_identification.png" alt="Forest plot: the air-quality effect shrinks from a large negative value to near zero as identification tightens" width="560">
 
-The marginal curve makes the trap visual: suppression appears to *fall* as AQI rises — only because the dirtiest hours are peak summer hours, until you control for season.
+The marginal curve makes the trap visual: suppression appears to *fall* as AQI rises, only because the dirtiest hours are peak summer hours, until you control for season.
 
 <img src="paper/figures/exposure_response.png" alt="Marginal suppression rate by heat index and by AQI; the AQI panel looks protective until season is controlled" width="620">
 
@@ -37,21 +37,21 @@ The full write-up, figures, and confidence intervals are in [paper/paper.md](pap
 
 ## How it works
 
-- **Target:** a logistic regression predicts whether a given hour of outdoor cycling is *suppressed* — ridership below half of a weather-free seasonal and diurnal baseline.
+- **Target:** a logistic regression predicts whether a given hour of outdoor cycling is *suppressed*, meaning ridership below half of a weather-free seasonal and diurnal baseline.
 - **Features (12):** heat index, hourly AQI, humidity, wind, precipitation, two temperature hinge terms, visibility, a smoke flag, and a cyclical encoding of hour and weekend.
-- **Pipeline:** train in Python → export to `model.js` as twelve coefficients → the page standardizes inputs and applies them directly.
-- **Inference:** a dot product through a sigmoid — no server, no build step, no API keys.
+- **Pipeline:** train in Python → export to model.js as twelve coefficients → the page standardizes inputs and applies them directly.
+- **Inference:** a dot product through a sigmoid, so there's no server, no build step, no API keys.
 
 ## Method
 
-- **Leak-free, out-of-time validation.** Train 2022–2023, test on held-out 2024; the label's climatology is fit on training years only (test-year volume carried forward), so nothing leaks.
-- **Hourly air quality.** Daily AQI swapped for hourly (CAMS, anchored to EPA daily) — what makes within-day identification possible.
-- **An identification ladder.** The AQI effect estimated three ways — marginal, between-day (season-controlled), within-day fixed effects — and most of it is seasonal confounding.
+- **Leak-free, out-of-time validation.** Train on 2022 and 2023, test on held-out 2024; the label's climatology is fit on training years only (test-year volume carried forward), so nothing leaks.
+- **Hourly air quality.** Daily AQI swapped for hourly (CAMS, anchored to EPA daily), which is what makes within-day identification possible.
+- **An identification ladder.** The AQI effect estimated three ways: marginal, between-day (season-controlled), and within-day fixed effects. Most of it is seasonal confounding.
 - **A feature ablation.** Temporal → weather → air quality, out-of-time, isolating what air quality adds (essentially nothing).
-- **Calibration first.** Brier, log loss, ECE, calibration slope, and a decision curve — across unweighted, class-weighted, and isotonic variants, not AUROC alone.
+- **Calibration first.** Brier, log loss, ECE, calibration slope, and a decision curve, across unweighted, class-weighted, and isotonic variants, not AUROC alone.
 - **Quantified uncertainty.** 95% bootstrap CIs, day-clustered for the within-day estimator, resampled over days for the policy metric.
 - **Power, not just a null.** The within-day design reports its minimum detectable effect, so the near-zero result is bounded-small, not underpowered.
-- **Sensitivity over silence.** Every analyst choice — label ratio, activity floor, shift window, AQI threshold — is swept and reported.
+- **Sensitivity over silence.** Every analyst choice (label ratio, activity floor, shift window, AQI threshold) is swept and reported.
 
 ## Tech stack
 
@@ -69,7 +69,7 @@ The full write-up, figures, and confidence intervals are in [paper/paper.md](pap
 make all       # venv, analysis, model export, tests
 ```
 
-Requires Python 3.9–3.12 (all tested in CI). The processed panel is committed (with a checksum and a column-level [data dictionary](research/data/README.md)), so analysis and tests run without re-downloading the raw data.
+Requires Python 3.9 to 3.12 (all tested in CI). The processed panel is committed (with a checksum and a column-level [data dictionary](research/data/README.md)), so analysis and tests run without re-downloading the raw data.
 
 ## Future scope
 
@@ -81,7 +81,7 @@ Requires Python 3.9–3.12 (all tested in CI). The processed panel is committed 
 
 ## Contributing
 
-- Setup, test, and reproduction steps — [CONTRIBUTING.md](CONTRIBUTING.md)
+- Setup, test, and reproduction steps: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Participation is governed by the [Code of Conduct](CODE_OF_CONDUCT.md)
 - Vulnerabilities go through the [security policy](SECURITY.md)
 
