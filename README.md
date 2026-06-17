@@ -22,6 +22,10 @@ The headline finding is about air quality, and it's a cautionary one: the effect
 
 <img src="paper/figures/aqi_identification.png" alt="Forest plot: the air-quality effect shrinks from a large negative value to near zero as identification tightens" width="560">
 
+The marginal curve makes the trap visual: suppression appears to *fall* as AQI rises — only because the dirtiest hours are peak summer hours, until you control for season.
+
+<img src="paper/figures/exposure_response.png" alt="Marginal suppression rate by heat index and by AQI; the AQI panel looks protective until season is controlled" width="620">
+
 - Features push forecast AUROC from 0.69 (a season-aware baseline) up to 0.94, and gradient boosting doesn't do any better.
 - The served model is well calibrated out-of-time (Brier 0.021, ECE 0.044).
 - **Air quality adds nothing to the forecast beyond weather** (ΔAUROC ≈ 0). Here it's cold and rain that drive suppression, not smoke.
