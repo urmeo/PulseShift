@@ -4,9 +4,11 @@ PulseShift predicts whether weather or air quality will ruin a planned outdoor s
 
 Live demo: https://urme-b.github.io/PulseShift/
 
-## What it does
+## Using it
 
-Give it the conditions for your session and it returns the odds the weather will cost you, plus a recommendation. One rule always overrides the model: if the heat index hits 103°F or the AQI hits 150, it's flagged unsafe, full stop. And if you're on the live forecast, it also points out the safest hour of the day to go.
+- Enter your session's conditions → get the odds the weather will suppress it, plus a recommendation.
+- A hard rule overrides the model: heat index ≥ 103°F or AQI ≥ 150 → flagged unsafe, full stop.
+- On the live forecast, it also points out the safest hour of the day to go.
 
 ## Results
 
@@ -31,18 +33,21 @@ The full write-up, figures, and confidence intervals are in [`paper/paper.md`](p
 
 ## How it works
 
-A logistic regression predicts whether a given hour of outdoor cycling is suppressed, meaning ridership drops below half of a weather-free seasonal and diurnal baseline. The features are heat index, hourly AQI, humidity, wind, precipitation, two temperature hinge terms, visibility, a smoke flag, and a cyclical encoding of hour and weekend. Training happens in Python; the model is exported to `model.js` as twelve coefficients, and the page standardizes the inputs and applies them directly. Inference is just a dot product through a sigmoid, so there's no server, no build step, and no API keys.
+- **Target:** a logistic regression predicts whether a given hour of outdoor cycling is *suppressed* — ridership below half of a weather-free seasonal and diurnal baseline.
+- **Features (12):** heat index, hourly AQI, humidity, wind, precipitation, two temperature hinge terms, visibility, a smoke flag, and a cyclical encoding of hour and weekend.
+- **Pipeline:** train in Python → export to `model.js` as twelve coefficients → the page standardizes inputs and applies them directly.
+- **Inference:** a dot product through a sigmoid — no server, no build step, no API keys.
 
 ## Method
 
-- **Leak-free, out-of-time validation.** Trained on 2022–2023, tested on a held-out 2024. The suppression label uses a climatology fit on the training years only, with the test-year volume carried forward, so nothing from the test period leaks into the label.
-- **Hourly air quality.** Daily AQI is swapped for hourly AQI (CAMS reanalysis, anchored to EPA daily ground-station data), which is what makes within-day identification possible in the first place.
-- **An identification ladder for air quality.** The AQI effect is estimated three ways: marginally, with a season-controlled between-day regression, and with a within-day fixed-effects model that absorbs every day-level confounder. Most of the apparent effect turns out to be seasonal confounding.
-- **A feature ablation.** Temporal, then weather, then air quality, out-of-time, to isolate what air quality actually adds to the forecast (essentially nothing).
-- **Calibration as a first-class metric.** Brier score, log loss, expected calibration error, calibration slope, and a decision curve, compared across unweighted, class-weighted, and isotonic-recalibrated variants, not AUROC alone.
-- **Quantified uncertainty.** 95% confidence intervals by bootstrap, day-clustered for the within-day estimator and resampled over days for the policy metric.
-- **Power, not just a null.** The within-day design reports its minimum detectable effect, so the near-zero air-quality result is a bounded-small effect rather than an underpowered shrug.
-- **Sensitivity over silence.** Every analyst choice — label ratio, activity floor, shift window, AQI threshold — is swept and reported, with the spec and the confirmatory/exploratory split fixed in [`paper/preregistration.md`](paper/preregistration.md).
+- **Leak-free, out-of-time validation.** Train 2022–2023, test on held-out 2024; the label's climatology is fit on training years only (test-year volume carried forward), so nothing leaks.
+- **Hourly air quality.** Daily AQI swapped for hourly (CAMS, anchored to EPA daily) — what makes within-day identification possible.
+- **An identification ladder.** The AQI effect estimated three ways — marginal, between-day (season-controlled), within-day fixed effects — and most of it is seasonal confounding.
+- **A feature ablation.** Temporal → weather → air quality, out-of-time, isolating what air quality adds (essentially nothing).
+- **Calibration first.** Brier, log loss, ECE, calibration slope, and a decision curve — across unweighted, class-weighted, and isotonic variants, not AUROC alone.
+- **Quantified uncertainty.** 95% bootstrap CIs, day-clustered for the within-day estimator, resampled over days for the policy metric.
+- **Power, not just a null.** The within-day design reports its minimum detectable effect, so the near-zero result is bounded-small, not underpowered.
+- **Sensitivity over silence.** Every analyst choice — label ratio, activity floor, shift window, AQI threshold — is swept and reported.
 
 ## Tech stack
 
