@@ -76,7 +76,7 @@ def metrics(y_true, y_prob) -> dict:
     y_prob = np.asarray(y_prob)
     slope, intercept = calibration_fit(y_true, y_prob)
     return {
-        "n": int(len(y_true)),
+        "n": len(y_true),
         "base_rate": float(y_true.mean()),
         "auroc": float(roc_auc_score(y_true, y_prob)),
         "auprc": float(average_precision_score(y_true, y_prob)),

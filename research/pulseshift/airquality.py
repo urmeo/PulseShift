@@ -184,7 +184,7 @@ def smoke_episodes(
     lo, hi = np.percentile(boot, [2.5, 97.5])
     return {
         "aqi_threshold": aqi_thresh,
-        "polluted_hours": int(len(hot)),
+        "polluted_hours": len(hot),
         "polluted_days": int(hot["day"].nunique()),
         "ride_ratio_vs_clean": round(float(rel.mean()), 3),
         "ci_low": round(float(lo), 3),

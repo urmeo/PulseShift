@@ -79,7 +79,7 @@ def ram_table(reco: pd.DataFrame, risk_col: str = "risk") -> dict:
         "ram_pct_of_lost": float(total / lost) if lost else 0.0,
         "share_shifted": float((reco["action"] == "shift").mean()),
         "share_cancel": float((reco["action"] == "cancel").mean()),
-        "n_shifts": int(len(shifts)),
+        "n_shifts": len(shifts),
         "distinct_target_slots": distinct_slots,
         "per_hour": pd.Series(recovered, index=reco.index),
     }

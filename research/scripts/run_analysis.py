@@ -236,7 +236,7 @@ def smoke_event(panel):
     jun8 = float(daily_ratio.loc[pd.Timestamp("2023-06-08").date()])
     return {
         "jun8_ratio": jun8,
-        "summer_weekday_days": int(len(daily_ratio)),
+        "summer_weekday_days": len(daily_ratio),
         "pct_days_below_jun8": float((daily_ratio <= jun8).mean()),
         "summer_ratio_median": float(daily_ratio.median()),
     }
@@ -414,7 +414,7 @@ def floor_sensitivity(panel):
         rows.append(
             {
                 "floor": floor,
-                "active_hours": int(len(sub)),
+                "active_hours": len(sub),
                 "base_rate": round(m["base_rate"], 3),
                 "auroc": round(m["auroc"], 3),
                 "ece": round(m["ece"], 3),
@@ -447,10 +447,10 @@ def main():
     floor_sens = floor_sensitivity(panel)
 
     summary = {
-        "panel_rows": int(len(panel)),
-        "active_hours": int(len(work)),
-        "train_rows": int(len(train_all)),
-        "test_rows": int(len(test)),
+        "panel_rows": len(panel),
+        "active_hours": len(work),
+        "train_rows": len(train_all),
+        "test_rows": len(test),
         "test_base_rate": float(test["suppressed"].mean()),
         "model_comparison": comparison.to_dict(orient="records"),
         "served_ci": ci,
