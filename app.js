@@ -105,18 +105,32 @@ function dcHourWeekend(iso) {
   return { hour, weekend: wd === "Sat" || wd === "Sun" };
 }
 
-function bestSafeHour(periods, aqi) {
-  if (aqi >= M.safety.aqi_unsafe) return null;   // unsafe air all day
+function localHourKey(iso) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hour12: false,
+  }).formatToParts(new Date(iso));
+  const get = (t) => parts.find((x) => x.type === t).value;
+  let h = get("hour");
+  if (h === "24") h = "00";
+  return `${get("year")}-${get("month")}-${get("day")}T${h}`;   // matches Open-Meteo local time keys
+}
+
+function bestSafeHour(periods, aqiByHour, fallbackAqi) {
   let best = null;
   for (const p of periods.slice(0, 24)) {
     const { hour, weekend } = dcHourWeekend(p.startTime);
     if (hour < 6 || hour > 21) continue;
+    const aqi = aqiByHour && aqiByHour[localHourKey(p.startTime)] != null
+      ? aqiByHour[localHourKey(p.startTime)]
+      : fallbackAqi;
+    if (aqi >= M.safety.aqi_unsafe) continue;   // skip hours whose air is unsafe
     const rh = p.relativeHumidity && p.relativeHumidity.value != null ? p.relativeHumidity.value : 50;
     const pop = p.probabilityOfPrecipitation && p.probabilityOfPrecipitation.value != null ? p.probabilityOfPrecipitation.value : 0;
     const hi = heatIndex(p.temperature, rh);
     if (hi >= M.safety.heat_unsafe_f) continue;
     const r = risk({ temp: p.temperature, humidity: rh, aqi, wind: parseInt(p.windSpeed, 10) || 0, precip: (pop / 100) * 0.1, hour, weekend, smoke: false });
-    if (!best || r < best.risk) best = { hour, risk: r };
+    if (!best || r < best.risk) best = { hour, risk: r, aqi };
   }
   return best;
 }
@@ -131,14 +145,29 @@ async function liveWeather() {
     $("temp").value = now.temperature;
     if (now.relativeHumidity && now.relativeHumidity.value != null) $("humidity").value = now.relativeHumidity.value;
     $("wind").value = parseInt(now.windSpeed, 10) || $("wind").value;
+
+    // per-hour air quality (Open-Meteo CAMS forecast, keyless), so the safest hour
+    // reflects how AQI actually moves over the day rather than a single frozen value
+    let aqiByHour = null;
+    try {
+      const aq = await fetch(
+        "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=38.8951&longitude=-77.0364&hourly=us_aqi&forecast_days=2&timezone=America%2FNew_York"
+      ).then((r) => r.json());
+      aqiByHour = {};
+      aq.hourly.time.forEach((t, i) => { aqiByHour[t.slice(0, 13)] = aq.hourly.us_aqi[i]; });
+      const nowAqi = aqiByHour[localHourKey(now.startTime)];
+      if (nowAqi != null) $("aqi").value = Math.round(nowAqi);
+    } catch { aqiByHour = null; }
+
     btn.textContent = "Live DC weather loaded";
     update();
-    const aqi = Number($("aqi").value);
-    const best = bestSafeHour(hourly.properties.periods, aqi);
+    const fallbackAqi = Number($("aqi").value);
+    const best = bestSafeHour(hourly.properties.periods, aqiByHour, fallbackAqi);
+    const aqiNote = aqiByHour ? `, AQI ${Math.round(best ? best.aqi : fallbackAqi)}` : ", AQI held constant";
     $("besthour").textContent = best
-      ? `Lowest-risk safe daytime hour ahead: ${String(best.hour).padStart(2, "0")}:00 (~${Math.round(best.risk * 100)}% risk, est.)`
-      : aqi >= M.safety.aqi_unsafe
-        ? "Air quality is unsafe all day — stay indoors."
+      ? `Lowest-risk safe daytime hour ahead: ${String(best.hour).padStart(2, "0")}:00 (~${Math.round(best.risk * 100)}% risk${aqiNote}, est.)`
+      : fallbackAqi >= M.safety.aqi_unsafe
+        ? "Air quality is unsafe — stay indoors."
         : "No safe daytime hour in the forecast window — consider indoors.";
   } catch {
     btn.textContent = "Live weather unavailable — enter manually";
@@ -157,7 +186,10 @@ function init() {
 
   document.querySelectorAll("input, select").forEach((el) => el.addEventListener("input", update));
   $("live").addEventListener("click", liveWeather);
-  $("meta").textContent = `Trained on ${M.meta.trained_on} · 2024 AUROC ${M.meta.auroc_2024}`;
+  $("meta").textContent = `Trained on ${M.meta.trained_on} · 2024 hold-out AUROC ${M.meta.auroc_2024}`;
+  $("meta").title = M.meta.metrics_note;
+  $("modelnote").textContent =
+    "Forecast metrics are an out-of-time hold-out estimate; the served model is refit on all three years. Educational tool, not safety advice — obey official heat and air-quality advisories.";
   update();
 }
 
