@@ -92,6 +92,40 @@ def _ols_ci(X, y, k, n_unit, n_boot, seed, cluster=None, scale=50):
     }
 
 
+def measurement_error_bound(work, beta_per_50, reliabilities=(0.7, 0.5, 0.3)):
+    """Attenuation-corrected within-day effect under classical exposure error.
+
+    CAMS reliability is the slope of EPA-daily on CAMS-daily (two same-scale
+    error-prone measures of true AQI); corrected effect = beta / reliability.
+    """
+    df = work.dropna(subset=["aqi_hourly"]).copy()
+    df["day"] = df["ts_local"].dt.normalize()
+    daily = (
+        df.groupby("day")
+        .agg(cams=("aqi_hourly", "mean"), epa=("aqi_epa_daily", "first"))
+        .dropna()
+    )
+    cov = np.cov(daily["cams"], daily["epa"])
+    lam = float(cov[0, 1] / cov[0, 0])
+    r = float(np.corrcoef(daily["cams"], daily["epa"])[0, 1])
+    rows = [
+        {
+            "reliability": "empirical",
+            "rho": round(lam, 2),
+            "corrected_per_50": round(beta_per_50 / lam, 3),
+        }
+    ]
+    rows += [
+        {
+            "reliability": "assumed",
+            "rho": rho,
+            "corrected_per_50": round(beta_per_50 / rho, 3),
+        }
+        for rho in reliabilities
+    ]
+    return {"cams_epa_corr": round(r, 3), "reliability": round(lam, 3), "rows": rows}
+
+
 def smoke_episodes(work, aqi_thresh=100, n_boot=1000, seed=0):
     """High-AQI hours vs same season-hour clean baseline, day-clustered CI."""
     df = _ride_ratio(work)
