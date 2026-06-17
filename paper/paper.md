@@ -19,7 +19,7 @@ how it is measured: the naive marginal association is *protective*, a season- an
 between-day regression gives a large negative effect (−10.9 ride-ratio points per +50 AQI, 95% CI −14.6
 to −7.3), but the rigorous within-day fixed-effects estimate collapses to −2.4 points (95% CI −5.9 to
 +1.1), and high-AQI hours matched to clean same-season hours show no reduction (1.01×, 95% CI
-0.94–1.09). This is not lost power: the within-day estimate is as precise as the between-day one (SE 1.8
+0.94–1.08). This is not lost power: the within-day estimate is as precise as the between-day one (SE 1.8
 vs 1.9) and would detect a between-day-sized effect with near-certainty, so the collapse reflects
 de-confounding. Second, air
 quality adds nothing to forecasting once weather is included (ΔAUROC and ΔAUPRC ≈ 0): weather is the
@@ -227,7 +227,7 @@ sits well below the −10.9-point between-day estimate, so a between-day-sized e
 intraday — its disappearance reflects de-confounding, not insufficient data. Matching high-AQI hours
 (AQI ≥ 100; 669 hours over 101 days, median
 AQI 118) to clean hours of the same season and hour shows no reduction (ride ratio 1.01× of clean, 95%
-CI 0.94–1.09, day-clustered), and the null holds at AQI thresholds of 80, 100, and 120. The honest
+CI 0.94–1.08, day-clustered), and the null holds at AQI thresholds of 80, 100, and 120. The honest
 reading is that pollution's effect on this mobility proxy is, at most, small, and that the large effects
 a daily analysis reports are an artifact of season.
 
