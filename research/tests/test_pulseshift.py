@@ -10,7 +10,7 @@ from pulseshift import airquality, config, ram, safety
 from pulseshift.evaluation import bootstrap_ci, metrics
 from pulseshift.features import MODEL_FEATURES, heat_index_f
 from pulseshift.models import fit_logistic
-from pulseshift.panel import _expected_rides, active, load_panel
+from pulseshift.panel import active, expected_rides, load_panel
 
 
 def test_heat_index_identity_and_amplifies():
@@ -29,13 +29,13 @@ def test_label_climatology_is_leak_free():
             "rides_total": [100, 200, 1000],
         }
     )
-    exp = _expected_rides(base)
+    exp = expected_rides(base)
     # shape = median(100,200)=150; 2024 carries 2023 level (200/150) -> 200
     assert exp[2] == pytest.approx(200.0, rel=1e-6)
     # changing the test year's volume must not change its expectation
     moved = base.copy()
     moved.loc[2, "rides_total"] = 99999
-    assert _expected_rides(moved)[2] == pytest.approx(exp[2], rel=1e-6)
+    assert expected_rides(moved)[2] == pytest.approx(exp[2], rel=1e-6)
 
 
 def test_metrics_perfect_and_chance():
@@ -141,11 +141,21 @@ def test_measurement_error_deattenuates():
 
 
 def test_served_model_matches_export():
-    """model.json must reproduce a fresh unweighted fit."""
+    """model.json must reproduce a fresh unweighted fit: features, scaler, and coefficients.
+
+    The browser computes (x - mean) / scale then a dot product with coef plus
+    intercept, so every one of those arrays must match what the app ships, not
+    only the coefficients.
+    """
     model_path = config.ROOT.parent / "model.json"
     if not model_path.exists():
         pytest.skip("model.json not built")
     m = json.loads(model_path.read_text())
     assert list(m["features"]) == MODEL_FEATURES
-    clf = fit_logistic(active(load_panel()), balanced=False).named_steps["clf"]
+    model = fit_logistic(active(load_panel()), balanced=False)
+    scaler = model.named_steps["scale"]
+    clf = model.named_steps["clf"]
+    assert np.allclose(scaler.mean_, m["mean"], atol=1e-6)
+    assert np.allclose(scaler.scale_, m["scale"], atol=1e-6)
     assert np.allclose(clf.coef_[0], m["coef"], atol=1e-6)
+    assert clf.intercept_[0] == pytest.approx(m["intercept"], abs=1e-6)
