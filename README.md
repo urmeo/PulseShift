@@ -33,7 +33,7 @@ The marginal curve makes the trap visual: suppression appears to *fall* as AQI r
 - A safety-constrained time-shift policy claws back up to ~37% of otherwise-lost activity (an upper bound), and never recommends an unsafe hour.
 - The same pipeline reaches AUROC 0.87 on a second city, Seoul.
 
-The full write-up, figures, and confidence intervals are in [`paper/paper.md`](paper/paper.md).
+The full write-up, figures, and confidence intervals are in [paper/paper.md](paper/paper.md).
 
 ## How it works
 
@@ -69,7 +69,7 @@ The full write-up, figures, and confidence intervals are in [`paper/paper.md`](p
 make all       # venv, analysis, model export, tests
 ```
 
-Requires Python 3.9–3.12 (all tested in CI). Or step by step, from `research/`: see [`research/README.md`](research/README.md). The processed panel is committed (with a checksum and a column-level [data dictionary](research/data/README.md)), so analysis and tests run without re-downloading the raw data.
+Requires Python 3.9–3.12 (all tested in CI). Or step by step, from `research/`: see [research/README.md](research/README.md). The processed panel is committed (with a checksum and a column-level [data dictionary](research/data/README.md)), so analysis and tests run without re-downloading the raw data.
 
 ## Future scope
 
@@ -81,7 +81,7 @@ Requires Python 3.9–3.12 (all tested in CI). Or step by step, from `research/`
 
 ## Contributing
 
-- Setup, test, and reproduction steps — [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- Setup, test, and reproduction steps — [CONTRIBUTING.md](CONTRIBUTING.md)
 - Participation is governed by the [Code of Conduct](CODE_OF_CONDUCT.md)
 - Vulnerabilities go through the [security policy](SECURITY.md)
 
