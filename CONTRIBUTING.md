@@ -19,7 +19,7 @@ make all       # setup + analysis + model + test
 The processed panel (`research/data/processed/panel.csv.gz`) is committed, so analysis and tests
 run without re-downloading raw data. `make data` rebuilds the panel from public sources.
 
-Python 3.9–3.12 are supported; CI tests all three.
+Python 3.9–3.12 are supported and all tested in CI.
 
 ## Before opening a pull request
 
