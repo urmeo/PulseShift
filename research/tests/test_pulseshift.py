@@ -159,3 +159,15 @@ def test_served_model_matches_export():
     assert np.allclose(scaler.scale_, m["scale"], atol=1e-6)
     assert np.allclose(clf.coef_[0], m["coef"], atol=1e-6)
     assert clf.intercept_[0] == pytest.approx(m["intercept"], abs=1e-6)
+
+
+def test_export_constants_match_config():
+    """Exported safety + thermal-stress hinges must match config so the app can't drift."""
+    model_path = config.ROOT.parent / "model.json"
+    if not model_path.exists():
+        pytest.skip("model.json not built")
+    m = json.loads(model_path.read_text())
+    assert m["safety"]["heat_unsafe_f"] == config.HEAT_UNSAFE_F
+    assert m["safety"]["aqi_unsafe"] == config.AQI_UNSAFE
+    assert m["stress"]["cold_base_f"] == config.COLD_STRESS_BASE_F
+    assert m["stress"]["heat_base_f"] == config.HEAT_STRESS_BASE_F
