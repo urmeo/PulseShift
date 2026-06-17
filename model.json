@@ -60,6 +60,10 @@
     "heat_unsafe_f": 103.0,
     "aqi_unsafe": 150
   },
+  "stress": {
+    "cold_base_f": 55.0,
+    "heat_base_f": 85.0
+  },
   "meta": {
     "model_version": "1.0.0",
     "trained_on": "Washington DC, Capital Bikeshare + NOAA + EPA/CAMS hourly AQI, 2022-2024",
