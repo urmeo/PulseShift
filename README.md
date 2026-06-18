@@ -55,13 +55,14 @@ The full write-up, figures, and confidence intervals are in [paper/paper.md](pap
 
 ## Tech stack
 
-| Layer | Tools |
-| --- | --- |
-| App | HTML, CSS, JavaScript, zero-dependency, static |
-| Model | scikit-learn, logistic regression, in-browser inference |
-| Pipeline | Python, pandas, NumPy, scikit-learn, matplotlib |
-| Data | Capital Bikeshare, NOAA LCD, EPA AirData, CAMS hourly AQI |
-| Quality | pytest, GitHub Actions, bootstrap CIs, decision-curve analysis |
+<table width="100%">
+<tr><th align="left" width="14%">Layer</th><th align="left">Tools</th></tr>
+<tr><td>App</td><td>HTML, CSS, JavaScript, zero-dependency, static</td></tr>
+<tr><td>Model</td><td>scikit-learn, logistic regression, in-browser inference</td></tr>
+<tr><td>Pipeline</td><td>Python, pandas, NumPy, scikit-learn, matplotlib</td></tr>
+<tr><td>Data</td><td>Capital Bikeshare, NOAA LCD, EPA AirData, CAMS hourly AQI</td></tr>
+<tr><td>Quality</td><td>pytest, GitHub Actions, bootstrap CIs, decision-curve analysis</td></tr>
+</table>
 
 ## Reproduce
 
