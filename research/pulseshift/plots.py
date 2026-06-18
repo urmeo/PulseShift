@@ -30,12 +30,12 @@ def _save(fig, name: str) -> None:
     plt.close(fig)
 
 
-def reliability_plot(y, raw, calibrated) -> None:
+def reliability_plot(y, balanced, served) -> None:
     fig, ax = plt.subplots(figsize=(5, 5))
     ax.plot([0, 1], [0, 1], "--", color="gray", lw=1, label="Perfect")
     for prob, lab, color in [
-        (raw, "Balanced", "#c44"),
-        (calibrated, "Unweighted (served)", "#2a7"),
+        (balanced, "Balanced", "#c44"),
+        (served, "Unweighted (served)", "#2a7"),
     ]:
         mp, fp = reliability(y, prob, n_bins=10)
         ax.plot(mp, fp, "o-", color=color, label=lab)
