@@ -1,5 +1,5 @@
-numpy==2.0.2  # exact pin: the version that produced the committed panel, tables, and model.json
-pandas==2.2.3
-scikit-learn==1.5.2
-scipy==1.13.1  # sklearn solver, pinned for reproducibility
-matplotlib==3.9.2
+numpy==2.5.0  # exact pin for reproducibility; committed artifacts match this stack at 1e-6 (asserted in tests)
+pandas==3.0.3
+scikit-learn==1.9.0
+scipy==1.18.0  # sklearn solver, pinned for reproducibility
+matplotlib==3.11.0

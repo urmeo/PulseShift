@@ -5,7 +5,7 @@ sources, fit and evaluate a suppression-forecasting model, and export the model 
 
 ## Requirements
 
-Python 3.9 or newer.
+Python 3.12 or newer.
 
 ## Installation
 
