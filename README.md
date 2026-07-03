@@ -53,6 +53,15 @@ The full write-up, figures, and confidence intervals are in [paper/paper.md](pap
 - **Power, not just a null.** The within-day design reports its minimum detectable effect, so the near-zero result is bounded-small, not underpowered.
 - **Sensitivity over silence.** Every analyst choice (label ratio, activity floor, shift window, AQI threshold) is swept and reported.
 
+## Limitations
+
+- **Single region.** Everything here is trained and validated on Washington DC (2022–2024). The Seoul run is a method check, not a second deployment; coefficients do not transfer, so the served model should not be trusted outside DC without a refit.
+- **Proxy target, not measured activity.** The label is bike-share ridership below half of a seasonal/diurnal baseline — a proxy for outdoor mobility demand that bundles commuting, errands, and tourism, not observed exercise. Any physical-activity or health reading needs external validation against measured data.
+- **Data-source caveats.** Training weather is NOAA LCD and air quality is CAMS hourly reanalysis anchored to EPA daily; the live forecast instead pulls NWS (weather.gov) for weather and Open-Meteo CAMS for hourly AQI, so live inputs are a different source than the model was fit on. CAMS underestimates localized smoke plumes versus ground stations (it read ~150 AQI on 8 June 2023 where the EPA station recorded 196), so the within-day air-quality estimate is conservative for exactly the smoke events of interest.
+- **Not for safety-critical decisions.** The forecast and time-shift suggestion are informational. The hard heat-index/AQI cutoffs are coarse guardrails, not medical or emergency guidance — do not rely on this tool for health, safety, or operational decisions.
+
+Fuller caveats, confidence intervals, and the minimum-detectable-effect analysis are in [paper/paper.md](paper/paper.md#8-limitations).
+
 ## Tech stack
 
 <table width="100%">
