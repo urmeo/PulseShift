@@ -68,7 +68,11 @@ input[type="number"], select {
   font-size: 1rem;
 }
 
-input:focus, select:focus { outline: none; border-color: var(--accent); }
+input:focus, select:focus { border-color: var(--accent); }
+input:focus-visible, select:focus-visible, .ghost:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 
 label.check {
   flex-direction: row;

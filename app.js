@@ -138,13 +138,23 @@ function bestSafeHour(periods, aqiByHour, fallbackAqi) {
   return best;
 }
 
+async function fetchJson(url, ms = 8000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { signal: ctrl.signal }).then((r) => r.json());
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function liveWeather() {
   const btn = $("live");
   btn.textContent = "Loading…";
   btn.setAttribute("aria-busy", "true");
   try {
-    const point = await fetch("https://api.weather.gov/points/38.8951,-77.0364").then((r) => r.json());
-    const hourly = await fetch(point.properties.forecastHourly).then((r) => r.json());
+    const point = await fetchJson("https://api.weather.gov/points/38.8951,-77.0364");
+    const hourly = await fetchJson(point.properties.forecastHourly);
     const now = hourly.properties.periods[0];
     $("temp").value = now.temperature;
     if (now.relativeHumidity && now.relativeHumidity.value != null) $("humidity").value = now.relativeHumidity.value;
@@ -154,9 +164,9 @@ async function liveWeather() {
     // reflects how AQI actually moves over the day rather than a single frozen value
     let aqiByHour = null;
     try {
-      const aq = await fetch(
+      const aq = await fetchJson(
         "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=38.8951&longitude=-77.0364&hourly=us_aqi&forecast_days=2&timezone=America%2FNew_York"
-      ).then((r) => r.json());
+      );
       if (aq && aq.hourly && Array.isArray(aq.hourly.time) && Array.isArray(aq.hourly.us_aqi)) {
         aqiByHour = {};
         aq.hourly.time.forEach((t, i) => { aqiByHour[t.slice(0, 13)] = aq.hourly.us_aqi[i]; });
