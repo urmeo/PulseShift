@@ -71,6 +71,41 @@ def test_policy_never_recommends_unsafe_hour():
     assert audit["unsafe_recommendations"] == 0 and audit["all_safe"]
 
 
+def test_recommend_is_row_order_invariant():
+    """Results must attach to the right rows regardless of input ordering."""
+    base = pd.DataFrame(
+        {
+            "ts_local": pd.to_datetime(
+                [
+                    "2024-07-01 08:00",
+                    "2024-07-01 09:00",
+                    "2024-07-02 08:00",
+                    "2024-07-02 09:00",
+                ]
+            ),
+            "hour": [8, 9, 8, 9],
+            "risk": [0.5, 0.1, 0.6, 0.2],
+            "heat_index_f": [90, 88, 92, 89],
+            "aqi": [60, 60, 60, 60],
+            "expected_rides": [100, 100, 100, 100],
+        }
+    )
+    order = [2, 0, 3, 1]  # interleave the two days
+    shuffled = base.iloc[order].reset_index(drop=True)
+
+    sorted_reco = ram.recommend(base).set_index("ts_local")
+    shuffled_reco = ram.recommend(shuffled).set_index("ts_local")
+
+    cols = ["action", "target_hour", "chosen_risk"]
+    pd.testing.assert_frame_equal(
+        sorted_reco[cols].sort_index(), shuffled_reco[cols].sort_index()
+    )
+    # a keep row must target its own hour (internal consistency)
+    for reco in (sorted_reco, shuffled_reco):
+        keep = reco[reco["action"] == "keep"]
+        assert (keep["target_hour"] == keep["hour"]).all()
+
+
 def test_hourly_aqi_join():
     """Panel AQI uses the hourly series where present, daily fallback otherwise."""
     panel = load_panel()

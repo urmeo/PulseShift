@@ -17,25 +17,34 @@ def recommend(
 ) -> pd.DataFrame:
     """Per active hour, choose keep or the lowest-risk safe time shift."""
     df = panel.copy()
+    orig_index = df.index
+    df = df.reset_index(drop=True)  # positional scatter needs a unique index
     df["day"] = df["ts_local"].dt.date
     df["safe"] = _safe(df["heat_index_f"], df["aqi"])
 
-    actions, targets, target_risk, t_heat, t_aqi = [], [], [], [], []
+    n = len(df)
+    actions = np.empty(n, dtype=object)
+    targets = np.full(n, np.nan)
+    target_risk = np.empty(n)
+    t_heat = np.empty(n)
+    t_aqi = np.empty(n)
+
     for _, day in df.groupby("day"):
+        idx = day.index.to_numpy()
         hours = day["hour"].to_numpy()
         risk = day[risk_col].to_numpy()
         safe = day["safe"].to_numpy()
         heat = day["heat_index_f"].to_numpy()
         air = day["aqi"].to_numpy()
         for i in range(len(day)):
+            pos = idx[i]
             near = np.abs(hours - hours[i]) <= window
             feasible = near & safe  # stay within the safe envelope
             if not feasible.any():
-                actions.append("cancel")
-                targets.append(np.nan)
-                target_risk.append(1.0)
-                t_heat.append(heat[i])
-                t_aqi.append(air[i])
+                actions[pos] = "cancel"
+                target_risk[pos] = 1.0
+                t_heat[pos] = heat[i]
+                t_aqi[pos] = air[i]
                 continue
             cand = np.where(feasible)[0]
             best = cand[np.argmin(risk[cand])]
@@ -45,17 +54,18 @@ def recommend(
                 action, best = "keep", i  # benefit too small to bother
             else:
                 action = "shift"
-            actions.append(action)
-            targets.append(hours[best])
-            target_risk.append(risk[best])
-            t_heat.append(heat[best])
-            t_aqi.append(air[best])
+            actions[pos] = action
+            targets[pos] = hours[best]
+            target_risk[pos] = risk[best]
+            t_heat[pos] = heat[best]
+            t_aqi[pos] = air[best]
 
     df["action"] = actions
     df["target_hour"] = targets
     df["chosen_risk"] = target_risk
     df["target_heat_index_f"] = t_heat
     df["target_aqi"] = t_aqi
+    df.index = orig_index
     return df
 
 
