@@ -55,7 +55,7 @@ A result is reported as robust only if it holds across its sweep.
 
 ## Replication plan (multi-city extension)
 
-The same spec runs per city by changing the city block in `pulseshift/config.py` (coordinates, station,
-trip source). Hourly AQI is available keyless for any city via CAMS/Open-Meteo, so the within-day
+The same spec runs per city by changing the city-specific constants in `pulseshift/config.py`
+(coordinates, weather station, timezone, and trip-source URL). Hourly AQI is available keyless for any city via CAMS/Open-Meteo, so the within-day
 identification (RQ1) can be replicated wherever hourly trip data exists; the confounding result is
 confirmed only if the between- vs within-day gap reproduces across cities.

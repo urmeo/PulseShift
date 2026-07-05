@@ -203,7 +203,7 @@ all models is shown in Figure `roc`.
 
 *Out-of-time, 2024.* Weather carries the entire forecast; adding hourly AQI and the smoke flag changes
 AUROC and AUPRC by ≈ 0. Refitting the served model with the daily measure swapped in for hourly AQI
-flips its standardized coefficient from +0.04 (hourly, correctly signed) to −0.04 (daily) — the daily
+flips its standardized coefficient from +0.036 (hourly, correctly signed) to −0.039 (daily) — the daily
 measure does not even get the sign right (Table `aqi_coefficient`). The forecast's accuracy is real but
 it is a weather forecast.
 
