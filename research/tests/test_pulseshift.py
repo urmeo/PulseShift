@@ -206,3 +206,74 @@ def test_export_constants_match_config():
     assert m["safety"]["aqi_unsafe"] == config.AQI_UNSAFE
     assert m["stress"]["cold_base_f"] == config.COLD_STRESS_BASE_F
     assert m["stress"]["heat_base_f"] == config.HEAT_STRESS_BASE_F
+
+
+def _hourly_frame(heat, aqi, risk):
+    n = len(heat)
+    return pd.DataFrame(
+        {
+            "ts_local": pd.to_datetime(
+                [f"2024-07-01 {8 + h:02d}:00" for h in range(n)]
+            ),
+            "hour": [8 + h for h in range(n)],
+            "risk": risk,
+            "heat_index_f": heat,
+            "aqi": aqi,
+            "expected_rides": [100] * n,
+        }
+    )
+
+
+def test_policy_shifts_out_of_unsafe_hour():
+    """An unsafe hour is never kept; it moves to a safe slot and the audit stays clean."""
+    reco = ram.recommend(
+        _hourly_frame(
+            heat=[108, 85, 86, 87, 88, 89],  # 08:00 exceeds the heat envelope
+            aqi=[60] * 6,
+            risk=[0.9, 0.2, 0.3, 0.4, 0.5, 0.6],
+        )
+    )
+    unsafe = reco.iloc[0]
+    assert unsafe["action"] == "shift"
+    assert unsafe["target_heat_index_f"] < config.HEAT_UNSAFE_F
+    assert unsafe["target_aqi"] < config.AQI_UNSAFE
+    audit = safety.audit(reco)
+    assert audit["unsafe_recommendations"] == 0 and audit["all_safe"]
+
+
+def test_policy_cancels_when_no_safe_window():
+    """With every nearby hour unsafe, the policy cancels rather than recommend danger."""
+    reco = ram.recommend(
+        _hourly_frame(heat=[110, 111, 112], aqi=[160, 160, 160], risk=[0.5, 0.6, 0.7])
+    )
+    assert (reco["action"] == "cancel").all()
+    audit = safety.audit(reco)
+    assert audit["all_safe"] and audit["unsafe_recommendations"] == 0
+    assert ram.ram_table(reco)["share_cancel"] == 1.0
+
+
+def test_export_scores_match_pipeline():
+    """The shipped arrays must reproduce the model's probabilities, not just its coefficients.
+
+    The browser scores (x - mean) / scale, a dot product with coef, plus intercept
+    through a sigmoid; this reruns that arithmetic from model.json and checks it against
+    the fitted pipeline, so a scoring-formula drift is caught, not only a coefficient one.
+    """
+    model_path = config.ROOT.parent / "model.json"
+    if not model_path.exists():
+        pytest.skip("model.json not built")
+    m = json.loads(model_path.read_text())
+    work = active(load_panel())
+    x = work[MODEL_FEATURES].to_numpy(dtype=float)
+    z = float(m["intercept"]) + ((x - m["mean"]) / m["scale"]) @ np.asarray(m["coef"])
+    served = fit_logistic(work, balanced=False)
+    p_pipeline = served.predict_proba(work[MODEL_FEATURES])[:, 1]
+    assert np.allclose(1.0 / (1.0 + np.exp(-z)), p_pipeline, atol=1e-9)
+
+
+def test_panel_matches_committed_checksum():
+    """The committed panel must match its recorded hash, and the hash must exist."""
+    from pulseshift import panel
+
+    assert (config.PROCESSED / "panel.sha256").exists()
+    panel.verify_checksum()  # raises ValueError on mismatch
