@@ -47,6 +47,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r research/requirements.txt -r research/requirements-dev.txt
+      - name: Verify committed panel checksum
+        run: |
+          cd research/data/processed
+          shasum -a 256 -c panel.sha256
       - name: Run tests with coverage
         run: |
           cd research
