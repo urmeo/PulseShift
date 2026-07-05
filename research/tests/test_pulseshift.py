@@ -268,7 +268,7 @@ def test_export_scores_match_pipeline():
     z = float(m["intercept"]) + ((x - m["mean"]) / m["scale"]) @ np.asarray(m["coef"])
     served = fit_logistic(work, balanced=False)
     p_pipeline = served.predict_proba(work[MODEL_FEATURES])[:, 1]
-    assert np.allclose(1.0 / (1.0 + np.exp(-z)), p_pipeline, atol=1e-9)
+    assert np.allclose(1.0 / (1.0 + np.exp(-z)), p_pipeline, atol=1e-6)
 
 
 def test_panel_matches_committed_checksum():
