@@ -26,10 +26,10 @@ The marginal curve makes the trap visual: suppression appears to *fall* as AQI r
 
 <img src="paper/figures/exposure_response.png" alt="Marginal suppression rate by heat index and by AQI; the AQI panel looks protective until season is controlled" width="620">
 
-- Features push forecast AUROC from 0.69 (a season-aware baseline) up to 0.94, and gradient boosting doesn't do any better.
+- Features push forecast AUROC from 0.69 (a season-aware baseline) up to 0.94, and gradient boosting is no better on AUROC (it edges only AUPRC).
 - The served model is well calibrated out-of-time (Brier 0.021, ECE 0.044).
 - **Air quality adds nothing to the forecast beyond weather** (ΔAUROC ≈ 0). Here it's cold and rain that drive suppression, not smoke.
-- That daily air-quality effect (−10.9 ride-ratio points per +50 AQI) shrinks to −2.4 (95% CI −5.9 to +1.1) once you identify it within-day.
+- That season-controlled between-day effect (−10.9 ride-ratio points per +50 AQI) shrinks to −2.4 (95% CI −5.9 to +1.1) once you identify it within-day.
 - A safety-constrained time-shift policy claws back up to ~37% of otherwise-lost activity (an upper bound), and never recommends an unsafe hour.
 - The same pipeline reaches AUROC 0.87 on a second city, Seoul.
 
