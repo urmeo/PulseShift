@@ -6,10 +6,15 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pulseshift import airquality, config, ram, safety
-from pulseshift.evaluation import bootstrap_ci, metrics
+from pulseshift import airquality, config, decision, equity, ram, safety
+from pulseshift.evaluation import (
+    bootstrap_ci,
+    calibration_fit,
+    expected_calibration_error,
+    metrics,
+)
 from pulseshift.features import MODEL_FEATURES, heat_index_f
-from pulseshift.models import fit_logistic
+from pulseshift.models import ClimatologyBaseline, fit_logistic
 from pulseshift.panel import active, expected_rides, load_panel
 
 
@@ -51,7 +56,7 @@ def test_bootstrap_ci_ordered():
     lo, hi = bootstrap_ci(
         y, np.array([0.1, 0.2, 0.8, 0.9]), roc_auc_score, n=50, require_two_classes=True
     )
-    assert lo <= hi
+    assert lo == hi == 1.0  # perfectly separable -> every valid resample scores AUROC 1
 
 
 def test_policy_never_recommends_unsafe_hour():
@@ -152,7 +157,14 @@ def test_within_day_removes_day_confounder():
     assert within["effect_per_50"] == pytest.approx(-0.2, abs=0.05)
     assert within["ci_low"] <= within["effect_per_50"] <= within["ci_high"]
     assert between["effect_per_50"] > within["effect_per_50"]
-    assert within["mde80"] > within["se"] > 0  # detectable effect scales with SE
+    assert within["se"] > 0  # detectable effect scales with SE
+
+
+def test_mde_matches_power_multipliers():
+    """MDE = (z_alpha/2 + z_power) * SE, pinning the exact 80%/90% power constants."""
+    w = airquality.within_day_effect(active(load_panel()), n_boot=300)
+    assert w["mde80"] == pytest.approx(config.MDE_Z80 * w["se"], abs=3e-3)
+    assert w["mde90"] == pytest.approx(config.MDE_Z90 * w["se"], abs=3e-3)
 
 
 def test_smoke_episode_ci_ordered():
@@ -277,3 +289,52 @@ def test_panel_matches_committed_checksum():
 
     assert (config.PROCESSED / "panel.sha256").exists()
     panel.verify_checksum()  # raises ValueError on mismatch
+
+
+def test_net_benefit_reference_and_dominance():
+    """At threshold = prevalence, treat-all net benefit is 0; a perfect model beats it."""
+    y = np.array([0, 0, 1, 1])
+    p_perfect = np.array([0.1, 0.2, 0.8, 0.9])
+    model, treat_all = decision.net_benefit(y, p_perfect, [0.5])
+    assert treat_all[0] == pytest.approx(0.0, abs=1e-9)
+    assert model[0] >= treat_all[0]
+
+
+def test_ece_rewards_calibration():
+    """ECE and the calibration slope must separate calibrated from over-confident probs."""
+    rng = np.random.default_rng(0)
+    p = rng.uniform(0, 1, 5000)
+    y_cal = (rng.uniform(0, 1, 5000) < p).astype(int)
+    y_off = (rng.uniform(0, 1, 5000) < np.clip(p - 0.3, 0, 1)).astype(int)
+    assert expected_calibration_error(y_cal, p) < expected_calibration_error(y_off, p)
+    assert 0.7 < calibration_fit(y_cal, p)[0] < 1.4  # calibrated -> slope near 1
+
+
+def test_rider_burden_asymmetry():
+    """Equity output is well-formed and reproduces the casual > member burden."""
+    burden = equity.rider_burden(load_panel()).set_index("rider_type")
+    assert set(burden.index) == {"member", "casual"}
+    assert burden["suppression_rate"].between(0, 1).all()
+    assert (
+        burden.loc["casual", "suppression_rate"]
+        > burden.loc["member", "suppression_rate"]
+    )
+
+
+def test_climatology_baseline_convention():
+    """predict_proba must be sklearn-style (col 1 = positive rate) and fall back to the prior."""
+    train = pd.DataFrame(
+        {
+            "season": ["summer"] * 4,
+            "daytype": ["weekday"] * 4,
+            "hour": [8, 8, 9, 9],
+            "suppressed": [1, 1, 0, 0],
+        }
+    )
+    clim = ClimatologyBaseline().fit(train)
+    proba = clim.predict_proba(train)
+    assert proba.shape == (4, 2)
+    assert np.allclose(proba.sum(axis=1), 1.0)
+    assert proba[0, 1] == 1.0 and proba[2, 1] == 0.0
+    unseen = pd.DataFrame({"season": ["winter"], "daytype": ["weekday"], "hour": [3]})
+    assert clim.predict_proba(unseen)[0, 1] == 0.5  # overall prior for an unseen cell
