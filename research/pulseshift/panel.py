@@ -28,11 +28,11 @@ def expected_rides(df: pd.DataFrame, value: str = "rides_total") -> np.ndarray:
 
 
 def suppression_mask(
-    rides: np.ndarray,
-    expected: np.ndarray,
+    rides: np.ndarray | pd.Series,
+    expected: np.ndarray | pd.Series,
     ratio: float = config.SUPPRESSION_RATIO,
     floor: float = config.EXPECTED_FLOOR,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray | pd.Series, np.ndarray | pd.Series]:
     """Active and suppressed boolean masks; the one rule every call site shares."""
     active = expected >= floor
     suppressed = (rides < ratio * expected) & active

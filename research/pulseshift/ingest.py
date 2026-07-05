@@ -17,14 +17,23 @@ def _download(url: str, dest) -> Path:
     if dest.exists() and dest.stat().st_size > 0:
         return dest
     dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_name(dest.name + ".part")
     req = urllib.request.Request(url, headers={"User-Agent": "pulseshift-research/1.0"})
-    with urllib.request.urlopen(req, timeout=120) as response, open(dest, "wb") as out:
+    with urllib.request.urlopen(req, timeout=120) as response, open(tmp, "wb") as out:
         while True:
             chunk = response.read(1 << 20)
             if not chunk:
                 break
             out.write(chunk)
+    tmp.replace(dest)  # atomic: an interrupted download never looks complete
     return dest
+
+
+def _write_csv(df: pd.DataFrame, cache: Path) -> None:
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    tmp = cache.with_name(cache.name + ".part")
+    df.to_csv(tmp, index=False)
+    tmp.replace(cache)  # atomic: a crash mid-write never leaves a truncated cache
 
 
 def _to_numeric(series: pd.Series) -> pd.Series:
@@ -74,8 +83,7 @@ def load_bikeshare() -> pd.DataFrame:
     ).rename(columns={"member": "rides_member", "casual": "rides_casual"})
     pivot["rides_total"] = pivot.sum(axis=1)
     out = pivot.reset_index()[["ts_utc", "rides_member", "rides_casual", "rides_total"]]
-    cache.parent.mkdir(parents=True, exist_ok=True)
-    out.to_csv(cache, index=False)
+    _write_csv(out, cache)
     return out
 
 
@@ -140,8 +148,7 @@ def load_weather() -> pd.DataFrame:
         .reset_index()
         .rename(columns={"hour": "ts_utc"})
     )
-    cache.parent.mkdir(parents=True, exist_ok=True)
-    hourly.to_csv(cache, index=False)
+    _write_csv(hourly, cache)
     return hourly
 
 
@@ -168,8 +175,7 @@ def load_aqi() -> pd.DataFrame:
         .agg(aqi=("AQI", "max"))
         .reset_index()
     )
-    cache.parent.mkdir(parents=True, exist_ok=True)
-    daily.to_csv(cache, index=False)
+    _write_csv(daily, cache)
     return daily
 
 
@@ -194,6 +200,5 @@ def load_aqi_hourly() -> pd.DataFrame:
 
     hourly = pd.concat(frames, ignore_index=True)
     hourly["ts_local"] = pd.to_datetime(hourly["ts_local"])
-    cache.parent.mkdir(parents=True, exist_ok=True)
-    hourly.to_csv(cache, index=False)
+    _write_csv(hourly, cache)
     return hourly
