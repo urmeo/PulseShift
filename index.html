@@ -37,7 +37,7 @@
             <select id="hour"></select>
           </label>
           <label class="check"><input type="checkbox" id="weekend" /> Weekend</label>
-          <label class="check" title="Sets visibility to ~3 mi. The smoke flag itself barely moves the model — air quality adds little beyond weather here."><input type="checkbox" id="smoke" /> Wildfire smoke / haze</label>
+          <label class="check" title="Sets visibility to ~3 mi and the smoke flag. Toggling this barely moves the model — the smoke flag and the reduced-visibility term roughly cancel, and air quality adds little beyond weather here."><input type="checkbox" id="smoke" /> Wildfire smoke / haze</label>
           <p class="hint">Smoke / haze assumes reduced visibility (~3 mi). In the DC training data, air quality added almost nothing beyond weather — see the paper for why.</p>
         </div>
         <button type="button" id="live" class="ghost">Use live DC weather</button>
