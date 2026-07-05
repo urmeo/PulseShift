@@ -25,7 +25,7 @@ Run from the `research/` directory:
 PYTHONPATH=. ../.venv/bin/python scripts/build_data.py     # download sources, build the panel
 PYTHONPATH=. ../.venv/bin/python scripts/run_analysis.py   # write figures and tables to ../paper
 PYTHONPATH=. ../.venv/bin/python scripts/train_model.py    # export ../model.js and ../model.json
-PYTHONPATH=. ../.venv/bin/python scripts/validate_seoul.py # cross-city check
+PYTHONPATH=. ../.venv/bin/python scripts/validate_seoul.py # cross-city check (downloads Seoul data; needs network)
 PYTHONPATH=. ../.venv/bin/pytest tests/ -q                 # tests
 ```
 

@@ -38,7 +38,7 @@ The full write-up, figures, and confidence intervals are in [paper/paper.md](pap
 ## How it works
 
 - **Target:** a logistic regression predicts whether a given hour of outdoor cycling is *suppressed*, meaning ridership below half of a weather-free seasonal and diurnal baseline.
-- **Features (12):** heat index, hourly AQI, humidity, wind, precipitation, two temperature hinge terms, visibility, a smoke flag, and a cyclical encoding of hour and weekend.
+- **Features (12):** heat index, AQI (hourly where available), humidity, wind, precipitation, two temperature hinge terms, visibility, a smoke flag, and a cyclical encoding of hour and weekend.
 - **Pipeline:** train in Python → export to model.js as twelve coefficients → the page standardizes inputs and applies them directly.
 - **Inference:** a dot product through a sigmoid, so there's no server, no build step, no API keys.
 
