@@ -119,6 +119,11 @@ function localHourKey(iso) {
   return `${get("year")}-${get("month")}-${get("day")}T${h}`;   // matches Open-Meteo local time keys
 }
 
+function windMph(s) {
+  const nums = String(s).match(/\d+/g);   // NWS gives "8 mph" or ranges like "5 to 10 mph"
+  return nums ? nums.map(Number).reduce((a, b) => a + b, 0) / nums.length : null;
+}
+
 function bestSafeHour(periods, aqiByHour, fallbackAqi) {
   let best = null;
   for (const p of periods.slice(0, 24)) {
@@ -132,7 +137,7 @@ function bestSafeHour(periods, aqiByHour, fallbackAqi) {
     const pop = p.probabilityOfPrecipitation && p.probabilityOfPrecipitation.value != null ? p.probabilityOfPrecipitation.value : 0;
     const hi = heatIndex(p.temperature, rh);
     if (hi >= M.safety.heat_unsafe_f) continue;
-    const r = risk({ temp: p.temperature, humidity: rh, aqi, wind: parseInt(p.windSpeed, 10) || 0, precip: (pop / 100) * 0.1, hour, weekend, smoke: false });
+    const r = risk({ temp: p.temperature, humidity: rh, aqi, wind: windMph(p.windSpeed) ?? 0, precip: (pop / 100) * 0.1, hour, weekend, smoke: false });
     if (!best || r < best.risk) best = { hour, risk: r, aqi };
   }
   return best;
@@ -158,7 +163,8 @@ async function liveWeather() {
     const now = hourly.properties.periods[0];
     $("temp").value = now.temperature;
     if (now.relativeHumidity && now.relativeHumidity.value != null) $("humidity").value = now.relativeHumidity.value;
-    $("wind").value = parseInt(now.windSpeed, 10) || $("wind").value;
+    const w = windMph(now.windSpeed);
+    if (w != null) $("wind").value = Math.round(w);   // 0 mph is a real calm reading, not "missing"
 
     // per-hour air quality (Open-Meteo CAMS forecast, keyless), so the safest hour
     // reflects how AQI actually moves over the day rather than a single frozen value
