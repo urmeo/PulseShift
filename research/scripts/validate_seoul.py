@@ -12,6 +12,7 @@ from sklearn.preprocessing import StandardScaler
 from pulseshift import config
 from pulseshift.evaluation import metrics
 from pulseshift.features import heat_index_f
+from pulseshift.panel import suppression_mask
 from pulseshift.tables import write_table
 
 URL = "https://archive.ics.uci.edu/static/public/560/seoul+bike+sharing+demand.zip"
@@ -91,9 +92,8 @@ def main():
     ).to_numpy()
     df = df.dropna(subset=["expected"])
     df = df[df["expected"] >= config.EXPECTED_FLOOR].reset_index(drop=True)
-    df["suppressed"] = (df["rides"] < config.SUPPRESSION_RATIO * df["expected"]).astype(
-        int
-    )
+    _, suppressed = suppression_mask(df["rides"].to_numpy(), df["expected"].to_numpy())
+    df["suppressed"] = suppressed.astype(int)
 
     tr, te = df[df["is_train"]], df[~df["is_train"]]
     model = Pipeline(

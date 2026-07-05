@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+
 import numpy as np
 import pandas as pd
 
@@ -25,15 +27,45 @@ def expected_rides(df: pd.DataFrame, value: str = "rides_total") -> np.ndarray:
     return shape * level
 
 
+def suppression_mask(
+    rides: np.ndarray,
+    expected: np.ndarray,
+    ratio: float = config.SUPPRESSION_RATIO,
+    floor: float = config.EXPECTED_FLOOR,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Active and suppressed boolean masks; the one rule every call site shares."""
+    active = expected >= floor
+    suppressed = (rides < ratio * expected) & active
+    return active, suppressed
+
+
 def label_suppression(
     df: pd.DataFrame,
     ratio: float = config.SUPPRESSION_RATIO,
     floor: float = config.EXPECTED_FLOOR,
 ) -> tuple[pd.Series, pd.Series]:
-    expected = df["expected_rides"]
-    active = expected >= floor
-    suppressed = (df["rides_total"] < ratio * expected) & active
+    active, suppressed = suppression_mask(
+        df["rides_total"], df["expected_rides"], ratio, floor
+    )
     return active, suppressed.astype(int)
+
+
+PANEL_PATH = config.PROCESSED / "panel.csv.gz"
+CHECKSUM_PATH = config.PROCESSED / "panel.sha256"
+
+
+def _sha256(path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def verify_checksum(path=PANEL_PATH, checksum_path=CHECKSUM_PATH) -> None:
+    """Raise if the committed panel no longer matches its recorded hash."""
+    if not checksum_path.exists():
+        return
+    expected = checksum_path.read_text().split()[0]
+    actual = _sha256(path)
+    if actual != expected:
+        raise ValueError(f"panel checksum mismatch: {actual} != {expected}")
 
 
 def build_panel(write: bool = True) -> pd.DataFrame:
@@ -83,15 +115,17 @@ def build_panel(write: bool = True) -> pd.DataFrame:
 
     if write:
         config.PROCESSED.mkdir(parents=True, exist_ok=True)
-        panel.to_csv(config.PROCESSED / "panel.csv.gz", index=False)
+        panel.to_csv(PANEL_PATH, index=False)
+        CHECKSUM_PATH.write_text(f"{_sha256(PANEL_PATH)}  panel.csv.gz\n")
     return panel
 
 
-def load_panel() -> pd.DataFrame:
-    path = config.PROCESSED / "panel.csv.gz"
-    if not path.exists():
+def load_panel(verify: bool = True) -> pd.DataFrame:
+    if not PANEL_PATH.exists():
         return build_panel()
-    return pd.read_csv(path, parse_dates=["ts_utc", "ts_local"])
+    if verify:
+        verify_checksum()
+    return pd.read_csv(PANEL_PATH, parse_dates=["ts_utc", "ts_local"])
 
 
 def active(panel: pd.DataFrame) -> pd.DataFrame:

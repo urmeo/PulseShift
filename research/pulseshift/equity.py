@@ -6,9 +6,8 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import brier_score_loss, roc_auc_score
 
-from . import config
 from .evaluation import calibration_fit
-from .panel import expected_rides
+from .panel import expected_rides, suppression_mask
 
 
 def strata_metrics(
@@ -38,10 +37,7 @@ def rider_burden(panel: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for kind, col in [("member", "rides_member"), ("casual", "rides_casual")]:
         expected = expected_rides(panel, value=col)
-        active = expected >= config.EXPECTED_FLOOR
-        suppressed = (
-            panel[col].to_numpy() < config.SUPPRESSION_RATIO * expected
-        ) & active
+        active, suppressed = suppression_mask(panel[col].to_numpy(), expected)
         rows.append(
             {
                 "rider_type": kind,

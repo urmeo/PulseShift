@@ -29,7 +29,7 @@ from pulseshift.models import (
     predict,
     temporal_split,
 )
-from pulseshift.panel import active, label_suppression, load_panel
+from pulseshift.panel import active, label_suppression, load_panel, suppression_mask
 from pulseshift.tables import write_table as _write_table
 
 
@@ -178,8 +178,8 @@ def figures(test, panel, work, preds, comparison):
 
 def recovered_active_minutes(test, p_unw):
     """Time-shift policy + safety audit; RAM% bootstrapped over days."""
-    test = test.assign(risk=p_unw)
-    reco = ram.recommend(test)
+    scored = test.assign(risk=p_unw)
+    reco = ram.recommend(scored)
     ram_stats = ram.ram_table(reco)
     plots.ram_by_month(reco, ram_stats["per_hour"])
     audit = safety.audit(reco)
@@ -204,7 +204,7 @@ def recovered_active_minutes(test, p_unw):
             g["recovered"].sum() / g["lost"].sum() if g["lost"].sum() else 0.0
         )
     ram_ci = [round(float(x), 3) for x in np.percentile(ratios, [2.5, 97.5])]
-    return test, ram_stats, audit, ram_ci
+    return scored, ram_stats, audit, ram_ci
 
 
 def smoke_event(panel):
@@ -407,9 +407,10 @@ def floor_sensitivity(panel):
     rows = []
     for floor in (10, 20, 30):
         sub = panel[panel["expected_rides"] >= floor].copy()
-        sub["suppressed"] = (
-            sub["rides_total"] < config.SUPPRESSION_RATIO * sub["expected_rides"]
-        ).astype(int)
+        _, suppressed = suppression_mask(
+            sub["rides_total"].to_numpy(), sub["expected_rides"].to_numpy(), floor=floor
+        )
+        sub["suppressed"] = suppressed.astype(int)
         tr, te = temporal_split(sub)
         m = metrics(te["suppressed"], predict(fit_logistic(tr, balanced=False), te))
         rows.append(
@@ -452,7 +453,7 @@ def main():
     step("figures")
     figures(test, panel, work, preds, comparison)
     step("recovered active minutes + safety audit")
-    test, ram_stats, audit, ram_ci = recovered_active_minutes(test, preds["unw"])
+    test_scored, ram_stats, audit, ram_ci = recovered_active_minutes(test, preds["unw"])
     step("smoke event")
     smoke_context = smoke_event(panel)
     step("AQI identification ladder (day-clustered bootstrap)")
@@ -462,7 +463,7 @@ def main():
     step("feature ablation")
     ablation = feature_ablation(train_all, test)
     step("subgroups")
-    burden = subgroups(test, panel)
+    burden = subgroups(test_scored, panel)
     step("label sensitivity")
     label_sensitivity(work)
     step("policy sensitivity")
