@@ -46,6 +46,11 @@ HEAT_STRESS_BASE_F = 85.0  # heat-index degrees above this accumulate as heat st
 TRAIN_YEARS = (2022, 2023)
 TEST_YEAR = 2024
 
+# Minimum-detectable-effect multipliers at alpha=0.05 two-sided: z_(1-alpha/2) + z_power.
+# 80% power: 1.95996 + 0.84162; 90% power: 1.95996 + 1.28155.
+MDE_Z80 = 2.802
+MDE_Z90 = 3.242
+
 # Adaptation + safety
 SHIFT_WINDOW_H = 3  # hours either side for a time shift
 HEAT_UNSAFE_F = 103.0  # heat index severe threshold

@@ -6,10 +6,11 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 
+from . import config
+
 CONTROLS = ["temp_f", "precip_in", "wind_mph", "humidity"]
 
-# two-sided 0.05 detectability multipliers
-Z80, Z90 = 2.802, 3.242
+Z80, Z90 = config.MDE_Z80, config.MDE_Z90
 
 
 def _ride_ratio(work: pd.DataFrame) -> pd.DataFrame:
