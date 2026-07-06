@@ -17,6 +17,8 @@ python3 -m venv ../.venv
 ../.venv/bin/pip install -r requirements.txt
 ```
 
+For a bit-for-bit reproducible install, use the hashed `requirements.lock` instead of `requirements.txt`.
+
 ## Usage
 
 Run from the `research/` directory:
