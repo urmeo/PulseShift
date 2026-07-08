@@ -190,5 +190,7 @@ def smoke_episodes(
         "ride_ratio_vs_clean": round(float(rel.mean()), 3),
         "ci_low": round(float(lo), 3),
         "ci_high": round(float(hi), 3),
-        "median_aqi_polluted": round(float(df.loc[df["polluted"], "aqi"].median()), 1),
+        "median_aqi_polluted": round(
+            float(hot["aqi"].median()), 1
+        ),  # matched set, as counted
     }
