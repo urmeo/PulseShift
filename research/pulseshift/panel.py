@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from . import config, ingest
-from .features import add_temporal, heat_index_f
+from .features import MODEL_FEATURES, add_temporal, heat_index_f
 
 
 def expected_rides(df: pd.DataFrame, value: str = "rides_total") -> np.ndarray:
@@ -108,7 +108,9 @@ def build_panel(write: bool = True) -> pd.DataFrame:
     panel["heat_stress"] = (panel["heat_index_f"] - config.HEAT_STRESS_BASE_F).clip(
         lower=0
     )
-    panel = panel.dropna(subset=["temp_f", "humidity", "aqi"]).reset_index(drop=True)
+    panel = panel.dropna(subset=MODEL_FEATURES).reset_index(
+        drop=True
+    )  # no NaN reaches the model
 
     panel["expected_rides"] = expected_rides(panel)
     panel["active_hour"], panel["suppressed"] = label_suppression(panel)
