@@ -6,6 +6,8 @@ smoke event -> AQI identification -> AQI coefficient -> ablation -> subgroups ->
 threshold sensitivity -> summary.
 """
 
+from __future__ import annotations
+
 import json
 import sys
 
@@ -17,6 +19,7 @@ from sklearn.metrics import (
     confusion_matrix,
     roc_auc_score,
 )
+from sklearn.pipeline import Pipeline
 
 from pulseshift import airquality, config, decision, equity, plots, ram, safety
 from pulseshift.calibration import calibrate_cv
@@ -33,7 +36,9 @@ from pulseshift.panel import active, label_suppression, load_panel, suppression_
 from pulseshift.tables import write_table as _write_table
 
 
-def fit_models(train_all, work, test):
+def fit_models(
+    train_all: pd.DataFrame, work: pd.DataFrame, test: pd.DataFrame
+) -> tuple[dict, Pipeline]:
     """Fit baselines + models; return test-set predictions and the served model."""
     clim = ClimatologyBaseline().fit(train_all)
     logit_unw = fit_logistic(train_all, balanced=False)
@@ -50,7 +55,7 @@ def fit_models(train_all, work, test):
     return preds, served
 
 
-def model_comparison(test, preds):
+def model_comparison(test: pd.DataFrame, preds: dict) -> pd.DataFrame:
     comparison = pd.DataFrame(
         [
             {"model": "Climatology", **metrics(test["suppressed"], preds["clim"])},
@@ -73,7 +78,7 @@ def model_comparison(test, preds):
     return comparison
 
 
-def served_confidence_intervals(test, p_unw):
+def served_confidence_intervals(test: pd.DataFrame, p_unw: np.ndarray) -> dict:
     yt = test["suppressed"].to_numpy()
     days = test["ts_local"].dt.normalize().to_numpy()  # cluster by day
     ci = {
@@ -100,7 +105,7 @@ def served_confidence_intervals(test, p_unw):
     return ci
 
 
-def coefficients_and_exposure(work, served):
+def coefficients_and_exposure(work: pd.DataFrame, served: Pipeline) -> None:
     coef = pd.DataFrame(
         {"feature": MODEL_FEATURES, "coefficient": served.named_steps["clf"].coef_[0]}
     ).sort_values("coefficient", key=abs, ascending=False)
@@ -123,7 +128,7 @@ def coefficients_and_exposure(work, served):
     _write_table(pd.DataFrame(rows), "exposure_response")
 
 
-def decision_and_cost(test, p_unw):
+def decision_and_cost(test: pd.DataFrame, p_unw: np.ndarray) -> list:
     """Decision-curve net benefit, plus operating points at explicit cost ratios."""
     yt = test["suppressed"].to_numpy()
     thresholds = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
@@ -153,7 +158,13 @@ def decision_and_cost(test, p_unw):
     return cost_rows
 
 
-def figures(test, panel, work, preds, comparison):
+def figures(
+    test: pd.DataFrame,
+    panel: pd.DataFrame,
+    work: pd.DataFrame,
+    preds: dict,
+    comparison: pd.DataFrame,
+) -> None:
     yt = test["suppressed"].to_numpy()
     plots.reliability_plot(yt, preds["bal"], preds["unw"])
     plots.roc_plot(
@@ -176,7 +187,9 @@ def figures(test, panel, work, preds, comparison):
     plots.smoke_event(panel)
 
 
-def recovered_active_minutes(test, p_unw):
+def recovered_active_minutes(
+    test: pd.DataFrame, p_unw: np.ndarray
+) -> tuple[pd.DataFrame, dict, dict, list]:
     """Time-shift policy + safety audit; RAM% bootstrapped over days."""
     scored = test.assign(risk=p_unw)
     reco = ram.recommend(scored)
@@ -207,7 +220,7 @@ def recovered_active_minutes(test, p_unw):
     return scored, ram_stats, audit, ram_ci
 
 
-def smoke_event(panel):
+def smoke_event(panel: pd.DataFrame) -> dict:
     event = panel[
         (panel["ts_local"] >= "2023-06-06") & (panel["ts_local"] < "2023-06-10")
     ]
@@ -243,7 +256,7 @@ def smoke_event(panel):
     }
 
 
-def aqi_identification(work):
+def aqi_identification(work: pd.DataFrame) -> dict:
     """Identification ladder: marginal -> between-day -> within-day fixed effects."""
     between = airquality.between_day_effect(work)
     within = airquality.within_day_effect(work)
@@ -283,7 +296,7 @@ def aqi_identification(work):
     }
 
 
-def aqi_coefficient(work):
+def aqi_coefficient(work: pd.DataFrame) -> list:
     """Served logistic AQI coefficient: hourly measure vs daily measure."""
     ai = MODEL_FEATURES.index("aqi")
     hourly = fit_logistic(work, balanced=False)
@@ -302,7 +315,7 @@ def aqi_coefficient(work):
     return rows
 
 
-def feature_ablation(train_all, test):
+def feature_ablation(train_all: pd.DataFrame, test: pd.DataFrame) -> list:
     """Marginal value of each feature group, out-of-time."""
     groups = {
         "temporal": ["hour_sin", "hour_cos", "is_weekend"],
@@ -341,7 +354,7 @@ def feature_ablation(train_all, test):
     return rows
 
 
-def subgroups(test_with_risk, panel):
+def subgroups(test_with_risk: pd.DataFrame, panel: pd.DataFrame) -> pd.DataFrame:
     _write_table(equity.strata_metrics(test_with_risk, "season"), "equity_by_season")
     _write_table(equity.strata_metrics(test_with_risk, "daytype"), "equity_by_daytype")
     burden = equity.rider_burden(panel)
@@ -349,7 +362,7 @@ def subgroups(test_with_risk, panel):
     return burden
 
 
-def label_sensitivity(work):
+def label_sensitivity(work: pd.DataFrame) -> None:
     rows = []
     for ratio in config.SENSITIVITY_RATIOS:
         _, lab = label_suppression(work, ratio=ratio)
@@ -363,7 +376,7 @@ def label_sensitivity(work):
     _write_table(pd.DataFrame(rows), "label_sensitivity")
 
 
-def policy_sensitivity(test, p_unw):
+def policy_sensitivity(test: pd.DataFrame, p_unw: np.ndarray) -> list:
     """RAM and safety across shift-window choices."""
     rows = []
     for window in (2, 3, 4):
@@ -381,7 +394,7 @@ def policy_sensitivity(test, p_unw):
     return rows
 
 
-def smoke_sensitivity(work):
+def smoke_sensitivity(work: pd.DataFrame) -> list:
     """Episode effect across AQI thresholds."""
     rows = []
     for thresh in (80, 100, 120):
@@ -402,7 +415,7 @@ def smoke_sensitivity(work):
     return rows
 
 
-def floor_sensitivity(panel):
+def floor_sensitivity(panel: pd.DataFrame) -> list:
     """Discrimination across the activity-floor choice."""
     rows = []
     for floor in (10, 20, 30):
@@ -426,7 +439,7 @@ def floor_sensitivity(panel):
     return rows
 
 
-def main():
+def main() -> None:
     """Run the full analysis (~2-4 min: GBM fit + day-clustered bootstraps dominate)."""
     total = 18
     done = [0]
