@@ -20,8 +20,8 @@ def _logit(p: np.ndarray) -> np.ndarray:
 
 
 def calibration_fit(y_true, y_prob) -> tuple[float, float]:
-    """Cox calibration: regress outcome on predicted logit."""
-    model = LogisticRegression(max_iter=2000)
+    """Cox calibration: unpenalized logistic of outcome on predicted logit."""
+    model = LogisticRegression(penalty=None, max_iter=2000)
     model.fit(_logit(y_prob).reshape(-1, 1), y_true)
     return float(model.coef_[0][0]), float(model.intercept_[0])
 
