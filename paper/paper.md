@@ -165,10 +165,10 @@ suppressed. We train on 2022–2023 (16,150 hours) and test on 2024 (8,204 hours
 
 | Model | AUROC | AUPRC | Brier | ECE | Cal. slope / int. |
 | --- | --- | --- | --- | --- | --- |
-| Season-aware climatology | 0.692 | 0.05 | 0.027 | 0.053 | 1.04 / −1.14 |
-| Logistic (unweighted, served) | 0.936 | 0.49 | 0.021 | 0.044 | 1.06 / −1.45 |
+| Season-aware climatology | 0.692 | 0.05 | 0.027 | 0.053 | 1.06 / −1.10 |
+| Logistic (unweighted, served) | 0.936 | 0.49 | 0.021 | 0.044 | 1.07 / −1.45 |
 | Logistic (class-weighted) | 0.940 | 0.45 | 0.128 | 0.253 | 0.69 / −3.83 |
-| Logistic (class-weighted) + calibration | 0.940 | 0.47 | 0.029 | 0.064 | 1.21 / −1.78 |
+| Logistic (class-weighted) + calibration | 0.940 | 0.47 | 0.029 | 0.064 | 1.22 / −1.78 |
 | Gradient boosting | 0.941 | 0.53 | 0.025 | 0.046 | 1.02 / −1.71 |
 
 *Test year 2024, n = 8,204. Served-model 95% CIs (day-clustered bootstrap): AUROC 0.90–0.97, AUPRC
@@ -224,7 +224,10 @@ on the 881 days that carry genuine intraday AQI variation — the effect collaps
 CI that crosses zero (Figure `aqi_identification`). This is not lost power: the within-day SE (1.8
 points) is no larger than the between-day SE (1.9), and the design's 80%-power threshold (~5 points)
 sits well below the −10.9-point between-day estimate, so a between-day-sized effect would have shown up
-intraday — its disappearance reflects de-confounding, not insufficient data. Matching high-AQI hours
+intraday — its disappearance reflects de-confounding, not insufficient data. (The between-day fit
+summarizes exposure as the daily *peak* AQI while the within-day estimator uses *hourly* AQI, so this
+contrast also shifts the exposure definition, not confounding alone; the matched-hours comparison next,
+which holds exposure fixed at the hourly level, is the cleaner de-confounding check.) Matching high-AQI hours
 (AQI ≥ 100; 669 hours over 101 days, median
 AQI 118) to clean hours of the same season and hour shows no reduction (ride ratio 1.01× of clean, 95%
 CI 0.94–1.08, day-clustered), and the null holds at AQI thresholds of 80, 100, and 120. The honest
