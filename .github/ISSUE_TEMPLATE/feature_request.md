@@ -10,8 +10,7 @@ assignees: ""
 What question or use case does this serve?
 
 **Proposal**
-What you'd like to add or change. For analysis changes, note whether it is confirmatory
-(prespecified in `paper/preregistration.md`) or exploratory.
+What you'd like to add or change.
 
 **Alternatives considered**
 Anything you weighed against this.

@@ -42,4 +42,4 @@ Then:
 
 ## Scientific changes
 
-The primary specification and the confirmatory/exploratory split are fixed in [paper/preregistration.md](paper/preregistration.md). New analyses are welcome, but please mark them as exploratory unless they were prespecified, and keep the leak-free, out-of-time discipline (climatology fit on training years only) intact: it is the project's central validity claim.
+New analyses are welcome, but please keep the leak-free, out-of-time discipline (climatology fit on training years only) intact: it is the project's central validity claim.
