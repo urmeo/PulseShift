@@ -4,7 +4,7 @@
 
 **Will weather or air quality kill your outdoor session? A calibrated forecast that runs in your browser — and the safest hour to go anyway.**
 
-**[▶ Live demo](https://urme-b.github.io/PulseShift/)** · **[📄 Paper](paper/paper.md)** · **[🔬 Pipeline](research/)** · **[📚 Data dictionary](research/data/README.md)**
+**[▶ Live demo](https://urme-b.github.io/PulseShift/)** · **[🔬 Pipeline](research/)** · **[📚 Data dictionary](research/data/README.md)**
 
 </div>
 
@@ -15,7 +15,7 @@
 - Enter conditions (or pull live DC weather) → get the probability the session is **suppressed**, a risk band, and a recommendation.
 - Scans the next 24 h of forecast + hourly AQI and points to the **lowest-risk safe daytime hour**.
 - Hard safety rails override the model: **heat index ≥ 103 °F or AQI ≥ 150 → unsafe, full stop**.
-- Inference is a 12-coefficient logistic dot product through a sigmoid — **no server, no build step, no API keys**.
+- Inference is a 12-coefficient logistic dot product through a sigmoid.
 
 ## Architecture
 
@@ -85,7 +85,7 @@ Class-weighting (the common imbalance default) keeps AUROC but wrecks the probab
 
 <img src="paper/figures/aqi_identification.png" alt="Forest plot: the AQI effect shrinks from −10.9 to −2.4 ride-ratio points as identification tightens from between-day to within-day" width="620">
 
-Not underpowered: within-day SE (1.8) ≈ between-day SE (1.9), and the 80%-power MDE (~5 pts) sits far below the −10.9 between-day estimate — an effect that size would have shown up within-day. Nor is it measurement error: at the CAMS↔EPA reliability of 0.73 the attenuation-corrected effect is only −3.3, and even an aggressive 0.3 reaches just −8.0 — still short of −10.9. Part of the −10.9 → −2.4 drop is also exposure definition, not confounding: between-day uses daily-*peak* AQI, within-day uses *hourly*, so the matched-hours row (1.01×), which holds exposure fixed, is the cleanest de-confounding check.
+Not underpowered: the within-day SE (1.8) matches the between-day SE (1.9), and the 80%-power MDE (~5 pts) sits well below −10.9 — an effect that large would have surfaced within-day. Not measurement error either: at CAMS↔EPA reliability 0.73 the corrected effect is −3.3, and even at an aggressive 0.3 only −8.0 — still short of −10.9. And part of the −10.9 → −2.4 gap is exposure definition, not confounding — between-day uses daily-*peak* AQI, within-day *hourly* — so the matched-hours row (1.01×), exposure held fixed, is the cleanest de-confounding check.
 
 The marginal curve is the trap: suppression *falls* as AQI rises because the dirtiest hours are peak-summer hours — until season is controlled.
 
@@ -110,35 +110,35 @@ Shift a risky hour by ≤ ±3 h only if predicted risk drops meaningfully **and*
 
 <img src="paper/figures/ram_by_month.png" alt="Recovered rides by month under the safety-constrained time-shift policy" width="680">
 
-<details>
-<summary><b>More evidence: ROC + decision curve</b></summary>
-<br>
+**More evidence — ROC + decision curve.**
+
 <table><tr>
 <td><img src="paper/figures/roc.png" alt="ROC curves: climatology 0.69, served and balanced models 0.94" width="380"></td>
 <td><img src="paper/figures/decision_curve.png" alt="Decision-curve net benefit vs threshold, positive across low-to-moderate thresholds" width="420"></td>
 </tr></table>
 
 At a 10:1 miss-to-flag cost ratio: threshold 0.09 → sensitivity 0.90, specificity 0.82, 20% of hours flagged.
-</details>
 
 ## Model card
 
 **Target** — an active city-hour is *suppressed* when rides < 0.5 × a weather-free, leak-free `season × daytype × hour` climatology (fit on training years only). 24,354 active hours; 6.0% suppressed.
 
-| Feature group | Inputs (12 total) |
-| --- | --- |
-| Thermal | heat index (NWS), cold stress max(0, 55−T), heat stress max(0, HI−85) |
-| Air | hourly AQI, smoke/haze flag, visibility |
-| Weather | humidity, wind, precipitation |
-| Time | hour (sin, cos), weekend |
+<table width="100%">
+<tr><th align="left" width="18%">Feature group</th><th align="left">Inputs (12 total)</th></tr>
+<tr><td>Thermal</td><td>heat index (NWS), cold stress max(0, 55−T), heat stress max(0, HI−85)</td></tr>
+<tr><td>Air</td><td>hourly AQI, smoke/haze flag, visibility</td></tr>
+<tr><td>Weather</td><td>humidity, wind, precipitation</td></tr>
+<tr><td>Time</td><td>hour (sin, cos), weekend</td></tr>
+</table>
 
-| Safety rail | Threshold | Behavior |
-| --- | --- | --- |
-| Heat index | ≥ 103 °F | Unsafe — overrides model output |
-| AQI | ≥ 150 | Unsafe — overrides model output |
-| Best-hour search | 06:00–21:00 local | Skips any hour breaching either rail |
+<table width="100%">
+<tr><th align="left" width="18%">Safety rail</th><th align="left">Threshold</th><th align="left">Behavior</th></tr>
+<tr><td>Heat index</td><td>≥ 103 °F</td><td>Unsafe — overrides model output</td></tr>
+<tr><td>AQI</td><td>≥ 150</td><td>Unsafe — overrides model output</td></tr>
+<tr><td>Best-hour search</td><td>06:00–21:00 local</td><td>Skips any hour breaching either rail</td></tr>
+</table>
 
-Inference: `p = σ( w · (x − μ) / s + b )` — coefficients, means, and scales ship in [`model.js`](model.js).
+Inference: `p = σ( w · (x − μ) / s + b )`.
 
 ## Reproduce
 
