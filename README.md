@@ -4,11 +4,6 @@
 
 **Will weather or air quality kill your outdoor session? A calibrated forecast that runs in your browser — and the safest hour to go anyway.**
 
-[![CI](https://github.com/urme-b/PulseShift/actions/workflows/ci.yml/badge.svg)](https://github.com/urme-b/PulseShift/actions/workflows/ci.yml)
-[![Python 3.12–3.14](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)](research/requirements.txt)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://urme-b.github.io/PulseShift/)
-
 **[▶ Live demo](https://urme-b.github.io/PulseShift/)** · **[📄 Paper](paper/paper.md)** · **[🔬 Pipeline](research/)** · **[📚 Data dictionary](research/data/README.md)**
 
 </div>
@@ -81,8 +76,6 @@ Class-weighting (the common imbalance default) keeps AUROC but wrecks the probab
 
 ## Finding 3 — The "pollution suppresses activity" effect is mostly seasonal confounding
 
-Same data, three identification strategies, three different answers. Only the within-day estimate holds season fixed — and it collapses toward zero.
-
 | Identification | Effect (ride-ratio pts per +50 AQI) | 95% CI |
 | --- | --- | --- |
 | Marginal (no controls) | *apparently protective* | seasonal artifact |
@@ -145,7 +138,7 @@ At a 10:1 miss-to-flag cost ratio: threshold 0.09 → sensitivity 0.90, specific
 | AQI | ≥ 150 | Unsafe — overrides model output |
 | Best-hour search | 06:00–21:00 local | Skips any hour breaching either rail |
 
-Inference: `p = σ( w · (x − μ) / s + b )` — coefficients, means, and scales ship in [`model.js`](model.js); Python↔JS parity is asserted at 1e-6 in CI.
+Inference: `p = σ( w · (x − μ) / s + b )` — coefficients, means, and scales ship in [`model.js`](model.js).
 
 ## Reproduce
 
@@ -161,8 +154,6 @@ make all        # venv + analysis + model export + tests (~3 min)
 | `make data` | Rebuilds the panel from public sources (network) |
 | `make seoul` | Cross-city validation run |
 | `make test` / `make lint` | 21 tests · ruff · mypy |
-
-The processed panel is **committed with a SHA-256 checksum** and a [column-level data dictionary](research/data/README.md), so analysis and tests run offline. Dependencies are pinned (`requirements.lock` for bit-for-bit installs). The confirmatory/exploratory split is locked in [`paper/preregistration.md`](paper/preregistration.md).
 
 ## Data
 
@@ -225,14 +216,6 @@ Equity note: casual riders bear ~1.9× the suppression burden of members (9.5% v
 - [ ] Neighborhood-level equity analysis
 - [ ] Small forecast API
 
-## Citing
-
-If you use PulseShift, cite via [`CITATION.cff`](CITATION.cff) (GitHub's "Cite this repository" button).
-
-## Contributing
-
-[CONTRIBUTING.md](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Security policy](SECURITY.md)
-
 ## License
 
-[MIT](LICENSE) © 2026 Urme Bose
+[MIT](LICENSE)
