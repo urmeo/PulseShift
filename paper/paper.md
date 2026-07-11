@@ -321,10 +321,8 @@ carries that claim.
 Public data and pinned dependencies. `run_analysis.py` regenerates every figure and table from the
 committed panel, `build_data.py` rebuilds that panel from source, `train_model.py` exports the served
 model, and `validate_seoul.py` runs the external check; `make all` runs setup, analysis, model export,
-and tests (the committed panel makes the data step optional). The primary specification, and the line
-between confirmatory and exploratory results, are declared in `paper/preregistration.md`.
-`pytest` (in CI) guards the heat index, the leak-free label, the within-day estimator, the safety
-policy, and model-export parity. See `research/README.md`.
+and tests (the committed panel makes the data step optional). `pytest` (in CI) guards the heat index,
+the leak-free label, the within-day estimator, and the safety policy. See `research/README.md`.
 
 ## Figures
 
