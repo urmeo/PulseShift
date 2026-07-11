@@ -1,11 +1,7 @@
 .DS_Store
-.archive/
-.claude/
-
 .venv/
 __pycache__/
 *.pyc
-.ipynb_checkpoints/
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
