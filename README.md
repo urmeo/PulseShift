@@ -85,9 +85,9 @@ Class-weighting (the common imbalance default) keeps AUROC but wrecks the probab
 
 <img src="paper/figures/aqi_identification.png" alt="Forest plot: the AQI effect shrinks from −10.9 to −2.4 ride-ratio points as identification tightens from between-day to within-day" width="620">
 
-Not a power problem: within-day SE (1.8) ≈ between-day SE (1.9), and the design's 80%-power MDE (~5 pts) is far below the −10.9 between-day estimate. Measurement-error correction (CAMS↔EPA reliability 0.73) moves −2.4 to only −3.3; even an aggressive 0.3 reliability reaches just −8.0 — still short of −10.9. (The between-day fit summarizes exposure as the daily *peak* AQI while the within-day estimator uses *hourly* AQI, so the shrink also reflects a change in exposure measure, not confounding alone; the matched-hours row, which holds exposure fixed, is the cleaner de-confounding check.)
+Not underpowered: within-day SE (1.8) ≈ between-day SE (1.9), and the 80%-power MDE (~5 pts) sits far below the −10.9 between-day estimate — an effect that size would have shown up within-day. Nor is it measurement error: at the CAMS↔EPA reliability of 0.73 the attenuation-corrected effect is only −3.3, and even an aggressive 0.3 reaches just −8.0 — still short of −10.9. Part of the −10.9 → −2.4 drop is also exposure definition, not confounding: between-day uses daily-*peak* AQI, within-day uses *hourly*, so the matched-hours row (1.01×), which holds exposure fixed, is the cleanest de-confounding check.
 
-The marginal curve shows the trap: suppression *falls* as AQI rises, because dirty hours are peak-summer hours — until season is controlled.
+The marginal curve is the trap: suppression *falls* as AQI rises because the dirtiest hours are peak-summer hours — until season is controlled.
 
 <img src="paper/figures/exposure_response.png" alt="Marginal suppression rate by heat index and AQI; the AQI panel looks protective until season is controlled" width="680">
 
@@ -127,7 +127,7 @@ At a 10:1 miss-to-flag cost ratio: threshold 0.09 → sensitivity 0.90, specific
 
 | Feature group | Inputs (12 total) |
 | --- | --- |
-| Thermal | heat index (NWS), cold stress `max(0, 55−T)`, heat stress `max(0, HI−85)` |
+| Thermal | heat index (NWS), cold stress max(0, 55−T), heat stress max(0, HI−85) |
 | Air | hourly AQI, smoke/haze flag, visibility |
 | Weather | humidity, wind, precipitation |
 | Time | hour (sin, cos), weekend |
@@ -149,11 +149,11 @@ make all        # venv + analysis + model export + tests (~3 min)
 
 | Command | Does |
 | --- | --- |
-| `make analysis` | Regenerates all 7 figures + 20+ tables from the committed panel |
-| `make model` | Refits and exports `model.js` / `model.json` |
-| `make data` | Rebuilds the panel from public sources (network) |
-| `make seoul` | Cross-city validation run |
-| `make test` / `make lint` | 21 tests · ruff · mypy |
+| make analysis | Regenerates all 7 figures + 20+ tables from the committed panel |
+| make model | Refits and exports model.js / model.json |
+| make data | Rebuilds the panel from public sources (network) |
+| make seoul | Cross-city validation run |
+| make test / make lint | 21 tests · ruff · mypy |
 
 ## Data
 
@@ -184,19 +184,11 @@ Equity note: casual riders bear ~1.9× the suppression burden of members (9.5% v
 
 | Path | What |
 | --- | --- |
-| `index.html` · `app.js` · `styles.css` | The app — static, zero dependencies |
-| `model.js` / `model.json` | Served coefficients + safety thresholds + metadata |
-| `research/pulseshift/` | Pipeline: ingest → panel → features → models → calibration → identification → policy |
-| `research/scripts/` | `build_data` · `run_analysis` · `train_model` · `validate_seoul` |
-| `research/tests/` | 21 tests: heat index, leak-free label, FE estimator, safety audit, export parity |
-| `paper/` | Paper, preregistration, all figures and tables (regenerable) |
-
-## Limitations
-
-- **One region.** Trained and validated on Washington DC; Seoul is a method check, not a deployment. Coefficients don't transfer without a refit.
-- **Proxy target.** Bike-share ridership ≈ outdoor mobility demand, not measured exercise; health readings need external validation.
-- **Live ≠ training sources.** App uses NWS + Open-Meteo; the model was fit on NOAA + CAMS. CAMS also underreads localized smoke peaks (~150 vs EPA's 196 on 8 Jun 2023), so the within-day AQI estimate is conservative.
-- **Informational only.** The rails are coarse guardrails, not medical or emergency guidance — follow official advisories.
+| index.html · app.js · styles.css | The app — static, zero dependencies |
+| model.js / model.json | Served coefficients + safety thresholds + metadata |
+| research/pulseshift/ | Pipeline: ingest → panel → features → models → calibration → identification → policy |
+| research/scripts/ | build_data · run_analysis · train_model · validate_seoul |
+| research/tests/ | 21 tests: heat index, leak-free label, FE estimator, safety audit, export parity |
 
 ## Tech stack
 
@@ -207,6 +199,13 @@ Equity note: casual riders bear ~1.9× the suppression burden of members (9.5% v
 | Pipeline | Python 3.12–3.14 · pandas · NumPy · SciPy · matplotlib |
 | Live data | NWS API · Open-Meteo CAMS (both keyless) |
 | Quality | pytest + coverage · ruff · mypy · pip-audit · GitHub Actions · bootstrap CIs · decision-curve analysis |
+
+## Limitations
+
+- **One region.** Trained and validated on Washington DC only; Seoul is a method check, not a deployment — coefficients don't transfer without a refit.
+- **Proxy target.** Bike-share ridership is outdoor mobility demand, not measured exercise; any health reading needs external validation.
+- **Live ≠ training sources.** The app pulls NWS + Open-Meteo; the model was fit on NOAA + CAMS. CAMS underreads localized smoke (~150 vs EPA's 196 on 8 Jun 2023), so the within-day AQI effect is, if anything, conservative.
+- **Informational only.** The rails are coarse guardrails — not medical or emergency guidance. Follow official advisories.
 
 ## Roadmap
 
