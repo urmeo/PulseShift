@@ -4,13 +4,13 @@ type: software
 title: "PulseShift: Calibrated Forecasting of Weather-Driven Mobility Suppression and Hourly Identification of Air-Quality Effects"
 version: 1.0.0
 date-released: 2026-06-17
-url: "https://github.com/urme-b/PulseShift"
-repository-code: "https://github.com/urme-b/PulseShift"
+url: "https://github.com/urmeo/PulseShift"
+repository-code: "https://github.com/urmeo/PulseShift"
 license: MIT
 authors:
   - family-names: Bose
     given-names: Urme
-    alias: urme-b
+    alias: urmeo
 keywords:
   - outdoor-mobility
   - bike-share

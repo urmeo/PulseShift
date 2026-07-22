@@ -4,7 +4,7 @@
 
 **Will weather or air quality kill your outdoor session? A calibrated forecast that runs in your browser — and the safest hour to go anyway.**
 
-**[▶ Live demo](https://urme-b.github.io/PulseShift/)** · **[🔬 Pipeline](research/)** · **[📚 Data dictionary](research/data/README.md)**
+**[▶ Live demo](https://urmeo.github.io/PulseShift/)** · **[🔬 Pipeline](research/)** · **[📚 Data dictionary](research/data/README.md)**
 
 </div>
 
@@ -143,7 +143,7 @@ Inference: `p = σ( w · (x − μ) / s + b )`.
 ## Reproduce
 
 ```bash
-git clone https://github.com/urme-b/PulseShift && cd PulseShift
+git clone https://github.com/urmeo/PulseShift && cd PulseShift
 make all        # venv + analysis + model export + tests (~3 min)
 ```
 
