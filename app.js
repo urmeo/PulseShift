@@ -132,8 +132,9 @@ function bestSafeHour(periods, aqiByHour, fallbackAqi) {
     const aqi = aqiByHour && aqiByHour[localHourKey(p.startTime)] != null
       ? aqiByHour[localHourKey(p.startTime)]
       : fallbackAqi;
-    if (aqi >= M.safety.aqi_unsafe) continue;   // skip hours whose air is unsafe
-    const rh = p.relativeHumidity && p.relativeHumidity.value != null ? p.relativeHumidity.value : 50;
+    if (!Number.isFinite(aqi) || aqi >= M.safety.aqi_unsafe) continue;
+    const rh = p.relativeHumidity && p.relativeHumidity.value;
+    if (!Number.isFinite(p.temperature) || !Number.isFinite(rh)) continue;
     const pop = p.probabilityOfPrecipitation && p.probabilityOfPrecipitation.value != null ? p.probabilityOfPrecipitation.value : 0;
     const hi = heatIndex(p.temperature, rh);
     if (hi >= M.safety.heat_unsafe_f) continue;
@@ -147,7 +148,9 @@ async function fetchJson(url, ms = 8000) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
   try {
-    return await fetch(url, { signal: ctrl.signal }).then((r) => r.json());
+    const response = await fetch(url, { signal: ctrl.signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
   } finally {
     clearTimeout(timer);
   }
@@ -161,8 +164,15 @@ async function liveWeather() {
     const point = await fetchJson("https://api.weather.gov/points/38.8951,-77.0364");
     const hourly = await fetchJson(point.properties.forecastHourly);
     const now = hourly.properties.periods[0];
+    const humidity = now.relativeHumidity && now.relativeHumidity.value;
+    if (!Number.isFinite(now.temperature) || !Number.isFinite(humidity)) {
+      throw new Error("Forecast temperature or humidity is missing");
+    }
+    const { hour, weekend } = dcHourWeekend(now.startTime);
+    $("hour").value = hour;
+    $("weekend").checked = weekend;
     $("temp").value = now.temperature;
-    if (now.relativeHumidity && now.relativeHumidity.value != null) $("humidity").value = now.relativeHumidity.value;
+    $("humidity").value = humidity;
     const w = windMph(now.windSpeed);
     if (w != null) $("wind").value = Math.round(w);   // 0 mph is a real calm reading, not "missing"
 
@@ -188,7 +198,7 @@ async function liveWeather() {
 
     btn.textContent = "Live DC weather loaded";
     update();
-    const fallbackAqi = Number($("aqi").value);
+    const fallbackAqi = num("aqi");
     const best = bestSafeHour(hourly.properties.periods, aqiByHour, fallbackAqi);
     const aqiNote = aqiByHour ? `, AQI ${Math.round(best ? best.aqi : fallbackAqi)}` : ", AQI held constant";
     $("besthour").textContent = best

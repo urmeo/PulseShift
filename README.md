@@ -142,6 +142,8 @@ Inference: `p = σ( w · (x − μ) / s + b )`.
 
 ## Reproduce
 
+Requires Python 3.12+ and Node.js 24+ (for browser logic tests).
+
 ```bash
 git clone https://github.com/urmeo/PulseShift && cd PulseShift
 make all        # venv + analysis + model export + tests (~3 min)

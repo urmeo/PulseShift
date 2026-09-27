@@ -29,6 +29,7 @@ seoul: setup
 
 test: setup
 	$(RUN) -m pytest tests/ -q
+	node --test tests/*.test.cjs
 
 lint: setup
 	$(VENV)/bin/ruff check research/pulseshift research/scripts research/tests
