@@ -1,0 +1,369 @@
+{
+  "provenance": {
+    "generated_at_utc": "2026-10-05T19:46:31.173154+00:00",
+    "source_commit": "8e3d83beebc2e07546210545b3143e9d2eaa57b9",
+    "source_dirty": false,
+    "source_sha256": "83b957d6d70241c62b57622f39096375c1481d0805fd92498dd115d44cae74ab",
+    "source_files_sha256": {
+      "research/pulseshift/__init__.py": "6a09c7098968c3e1d4de8fbd2e7b7fd0ad791ca4f8b811be7128baee3cb50da2",
+      "research/pulseshift/airquality.py": "9cc9534e2c6480b798dd87051099de492f720913f751f73179488ca276aab9d3",
+      "research/pulseshift/calibration.py": "01daf1af74d31de05c6c93663a1a2a9e860475f4f1ecd7ea569463478cb21fe1",
+      "research/pulseshift/config.py": "12e0698ca916e80dfcddbbdae2d825f947a286f4315856e6dbcec3e0e674b3c5",
+      "research/pulseshift/decision.py": "44c2aec2b7f4f92f2f6704447ffd78cd0e561754f2cd19f9f38f1fdc7731b3d6",
+      "research/pulseshift/equity.py": "8d89981540c99cd4f9294254315478edfa8d258f04e6fa905ab0fa07174b4c5b",
+      "research/pulseshift/evaluation.py": "6f6f53ef173a68139a5d3c766483197b2ee5f271ae75b24f068207f0799aadef",
+      "research/pulseshift/features.py": "79f1e6d78d3e459abb7a2532b6f40cd6fec0ac0898762a904eb6f18a03d8e96e",
+      "research/pulseshift/ingest.py": "fa13dd8a053d681ef62980e2e3497c8ee36efa81552e163479d9b9e75b430ee5",
+      "research/pulseshift/models.py": "7e96210c4d087f7ab4ab9ddf9707b21d6ba9c7d0da0256b3e2cac6c27fd0e729",
+      "research/pulseshift/panel.py": "875cb7ee787c49f483ba911cec4fe4881f3a70fdb505ed33177c1fc634b57333",
+      "research/pulseshift/plots.py": "becab9c16c78cd173f4da10fe6ce9f2662cdee2c042801867bcc72cb1816f269",
+      "research/pulseshift/provenance.py": "c07ec76ad36b7ad8989457852a8fdc3d65e14ee845f239c621b871cef461dc07",
+      "research/pulseshift/ram.py": "69d74e6ca6bf4e47aa02a86049727a0104942eaaf1b339effd10279760793b36",
+      "research/pulseshift/safety.py": "60bb49ce9a7fdc5b4a4dce50d6fdb6b7c29e64305408d3286f264cb897d6e442",
+      "research/pulseshift/tables.py": "a4f5027ee1383d4edd565365ca3599face4b400379c36afb78979b84d4431936",
+      "research/scripts/build_data.py": "c250235515165e6a03a1d7e25e641112f779054422896ebc9137a6b5ec3d4e19",
+      "research/scripts/run_analysis.py": "d5f799600edc2703beef2217b693c6ae970aac7af09d3602170d88259bb2e219",
+      "research/scripts/train_model.py": "e39ff76d92a5e1ca884ec1f5efb7b617381617c15dc3c3d78c8f1eff17a21f51",
+      "research/scripts/validate_seoul.py": "af2960eb2a36924d8d72ca08be89d08c6ab6faea3d7eee08690077acd16eff01"
+    },
+    "panel_sha256": "69eed06d11c82b591e53380346a1019703889e47cb3c72d13b8939a7589a4769",
+    "python": "3.12.13",
+    "platform": "macOS-27.0.1-arm64-arm-64bit",
+    "packages": {
+      "numpy": "2.5.0",
+      "pandas": "3.0.3",
+      "scipy": "1.18.0",
+      "scikit-learn": "1.9.0",
+      "matplotlib": "3.11.0"
+    },
+    "label": {
+      "ratio": 0.5,
+      "expected_floor": 20,
+      "climatology": "training-year season \u00d7 daytype \u00d7 hour median with training-year volume level",
+      "train_years": [
+        2022,
+        2023
+      ],
+      "test_year": 2024
+    },
+    "air_quality": {
+      "source": "CAMS Global Atmospheric Composition Forecasts via Open-Meteo",
+      "native_resolution": "approximately 45 km / 3-hourly; hourly API values",
+      "fallback": "EPA daily AQI where CAMS hourly AQI is missing"
+    },
+    "safety_rails": {
+      "heat_unsafe_f": 103.0,
+      "aqi_unsafe": 150
+    }
+  },
+  "interpretation": {
+    "holdout": "2022\u20132023 fit evaluated on 2024; distinct from all-data served coefficients",
+    "calibration": "unweighted probabilities still overestimate 2024 suppression prevalence",
+    "policy": "ride-weighted predicted-risk scenario; full transfer assumed, not measured causal recovery",
+    "aqi": "daily-peak and hourly associations use different exposures; residual confounding and intraday measurement error remain",
+    "rider_burden": "aggregate rider-type hour rates, not individual or neighborhood equity"
+  },
+  "panel_rows": 26288,
+  "active_hours": 24354,
+  "train_rows": 16150,
+  "test_rows": 8204,
+  "test_base_rate": 0.02462213554363725,
+  "model_comparison": [
+    {
+      "model": "Climatology",
+      "n": 8204,
+      "base_rate": 0.02462213554363725,
+      "auroc": 0.6922347383451167,
+      "auprc": 0.04607740480331623,
+      "brier": 0.02748281499542818,
+      "log_loss": 0.13642529215415966,
+      "ece": 0.05302749611497718,
+      "cal_slope": 1.0576038015431926,
+      "cal_intercept": -1.1004307922230756
+    },
+    {
+      "model": "Logistic (unweighted)",
+      "n": 8204,
+      "base_rate": 0.02462213554363725,
+      "auroc": 0.9364768956275782,
+      "auprc": 0.4877714979482489,
+      "brier": 0.02125156236729316,
+      "log_loss": 0.09508685311281159,
+      "ece": 0.04422557661282291,
+      "cal_slope": 1.0656952926079546,
+      "cal_intercept": -1.447533629138635
+    },
+    {
+      "model": "Logistic (balanced)",
+      "n": 8204,
+      "base_rate": 0.02462213554363725,
+      "auroc": 0.939730104602562,
+      "auprc": 0.4478615947523785,
+      "brier": 0.12839007678924635,
+      "log_loss": 0.4306176133148386,
+      "ece": 0.2532444276625464,
+      "cal_slope": 0.6936643131491539,
+      "cal_intercept": -3.8327558431697413
+    },
+    {
+      "model": "Logistic (balanced) + calibration",
+      "n": 8204,
+      "base_rate": 0.02462213554363725,
+      "auroc": 0.9396218395896077,
+      "auprc": 0.46595889590014744,
+      "brier": 0.028815377333775784,
+      "log_loss": 0.11375091325488705,
+      "ece": 0.0642372913066887,
+      "cal_slope": 1.2180123009737993,
+      "cal_intercept": -1.7825881612983485
+    },
+    {
+      "model": "Gradient boosting",
+      "n": 8204,
+      "base_rate": 0.02462213554363725,
+      "auroc": 0.9417512577301219,
+      "auprc": 0.5261572897295501,
+      "brier": 0.024907140601903896,
+      "log_loss": 0.0964016217102022,
+      "ece": 0.0460836905918486,
+      "cal_slope": 1.0167559260942243,
+      "cal_intercept": -1.70935728570969
+    }
+  ],
+  "served_ci": {
+    "auroc": [
+      0.8996819586597287,
+      0.9671327948166588
+    ],
+    "auprc": [
+      0.31932401502394087,
+      0.6375503882347442
+    ],
+    "brier": [
+      0.016559261680678408,
+      0.026073995593715923
+    ],
+    "ece": [
+      0.03661557145494353,
+      0.05174732338434381
+    ]
+  },
+  "ram": {
+    "recovered_rides": 92596.56784068375,
+    "recovered_minutes": 1203755.3819288888,
+    "lost_rides_no_adapt": 251598.73331817717,
+    "ram_pct_of_lost": 0.3680327266337392,
+    "share_shifted": 0.1372501218917601,
+    "share_cancel": 0.0010970258410531448,
+    "n_shifts": 1126,
+    "distinct_target_slots": 757
+  },
+  "ram_pct_ci": [
+    0.3301098599357227,
+    0.40884160271263104
+  ],
+  "ram_pct_discounted_50": 0.1840163633168696,
+  "safety": {
+    "n_shifts": 1126,
+    "n_cancel": 9,
+    "unsafe_recommendations": 0,
+    "invalid_recommendations": 0,
+    "mean_risk_reduction": 0.15965167192497398,
+    "all_safe": true
+  },
+  "smoke_event": {
+    "jun8_ratio": 0.7622581144386693,
+    "summer_weekday_days": 66,
+    "pct_days_below_jun8": 0.09090909090909091,
+    "summer_ratio_median": 0.9675397032225801
+  },
+  "aqi_identification": {
+    "between_day": {
+      "effect_per_50": -0.10939153612786266,
+      "ci_low": -0.14616111114082145,
+      "ci_high": -0.07261718846285804,
+      "se": 0.018584342544285218,
+      "mde80": 0.05207332780908718,
+      "mde90": 0.060250438528572675,
+      "n": 1096
+    },
+    "within_day": {
+      "effect_per_50": -0.02373577897542446,
+      "ci_low": -0.058769587319511596,
+      "ci_high": 0.011047667652282612,
+      "se": 0.01779400408339524,
+      "mde80": 0.049858799441673464,
+      "mde90": 0.05768816123836737,
+      "n": 881
+    },
+    "episodes": {
+      "aqi_threshold": 100,
+      "polluted_hours": 669,
+      "polluted_days": 101,
+      "ride_ratio_vs_clean": 1.0083154619751407,
+      "ci_low": 0.9397320773183359,
+      "ci_high": 1.0851592842608597,
+      "median_aqi_polluted": 118.0
+    },
+    "measurement_error": {
+      "daily_comparison": "EPA daily AQI versus CAMS hourly daily mean",
+      "daily_days": 881,
+      "cams_epa_corr": 0.7258978545475778,
+      "cams_epa_slope": 0.7319468064380528,
+      "intraday_reliability_measured": false,
+      "rows": [
+        {
+          "reliability": "assumed",
+          "rho": 0.7,
+          "corrected_per_50": -0.0339082556791778
+        },
+        {
+          "reliability": "assumed",
+          "rho": 0.5,
+          "corrected_per_50": -0.04747155795084892
+        },
+        {
+          "reliability": "assumed",
+          "rho": 0.3,
+          "corrected_per_50": -0.07911926325141487
+        }
+      ]
+    }
+  },
+  "aqi_coefficient": [
+    {
+      "aqi_source": "hourly (served)",
+      "std_coefficient": 0.0358168893052432
+    },
+    {
+      "aqi_source": "daily",
+      "std_coefficient": -0.04133283446630584
+    }
+  ],
+  "ablation": [
+    {
+      "features": "temporal",
+      "auroc": 0.5094790658770951,
+      "auprc": 0.026140669971872133,
+      "brier": 0.02708680486831162,
+      "ece": 0.0534209552015228
+    },
+    {
+      "features": "+ weather",
+      "auroc": 0.9364747303273192,
+      "auprc": 0.48892736548213306,
+      "brier": 0.021199008006054683,
+      "ece": 0.04388287217244193
+    },
+    {
+      "features": "+ air quality",
+      "auroc": 0.9364768956275782,
+      "auprc": 0.4877714979482489,
+      "brier": 0.021251562367293135,
+      "ece": 0.044225576612822906
+    }
+  ],
+  "cost_threshold": [
+    {
+      "cost_ratio_miss_to_flag": 5,
+      "threshold": 0.167,
+      "sensitivity": 0.782,
+      "specificity": 0.915,
+      "flagged_share": 0.102
+    },
+    {
+      "cost_ratio_miss_to_flag": 10,
+      "threshold": 0.091,
+      "sensitivity": 0.896,
+      "specificity": 0.822,
+      "flagged_share": 0.196
+    },
+    {
+      "cost_ratio_miss_to_flag": 20,
+      "threshold": 0.048,
+      "sensitivity": 0.941,
+      "specificity": 0.708,
+      "flagged_share": 0.308
+    }
+  ],
+  "rider_burden": [
+    {
+      "rider_type": "member",
+      "active_hours": 22735,
+      "suppression_rate": 0.05084671211787992
+    },
+    {
+      "rider_type": "casual",
+      "active_hours": 21692,
+      "suppression_rate": 0.09501198598561682
+    }
+  ],
+  "sensitivity": {
+    "policy": [
+      {
+        "shift_window_h": 2,
+        "ram_pct_of_lost": 0.303,
+        "share_shifted": 0.113,
+        "all_safe": true
+      },
+      {
+        "shift_window_h": 3,
+        "ram_pct_of_lost": 0.368,
+        "share_shifted": 0.137,
+        "all_safe": true
+      },
+      {
+        "shift_window_h": 4,
+        "ram_pct_of_lost": 0.417,
+        "share_shifted": 0.155,
+        "all_safe": true
+      }
+    ],
+    "smoke": [
+      {
+        "aqi_threshold": 80,
+        "polluted_days": 191,
+        "ride_ratio_vs_clean": 0.9966518229120078,
+        "ci_low": 0.9514406218014929,
+        "ci_high": 1.0404420452375887
+      },
+      {
+        "aqi_threshold": 100,
+        "polluted_days": 101,
+        "ride_ratio_vs_clean": 1.0083154619751407,
+        "ci_low": 0.9397320773183359,
+        "ci_high": 1.0851592842608597
+      },
+      {
+        "aqi_threshold": 120,
+        "polluted_days": 52,
+        "ride_ratio_vs_clean": 1.0201557272587582,
+        "ci_low": 0.9069933936676001,
+        "ci_high": 1.1567979583267525
+      }
+    ],
+    "floor": [
+      {
+        "floor": 10,
+        "active_hours": 25968,
+        "base_rate": 0.024,
+        "auroc": 0.932,
+        "ece": 0.046
+      },
+      {
+        "floor": 20,
+        "active_hours": 24354,
+        "base_rate": 0.025,
+        "auroc": 0.936,
+        "ece": 0.044
+      },
+      {
+        "floor": 30,
+        "active_hours": 23219,
+        "base_rate": 0.025,
+        "auroc": 0.937,
+        "ece": 0.044
+      }
+    ]
+  }
+}

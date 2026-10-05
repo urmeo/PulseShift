@@ -1,5 +1,0 @@
-| cost_ratio_miss_to_flag | threshold | sensitivity | specificity | flagged_share |
-| --- | --- | --- | --- | --- |
-| 5 | 0.167 | 0.782 | 0.915 | 0.102 |
-| 10 | 0.091 | 0.896 | 0.822 | 0.196 |
-| 20 | 0.048 | 0.936 | 0.708 | 0.307 |
