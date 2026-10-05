@@ -1,9 +1,9 @@
 cff-version: 1.2.0
-message: "If you use PulseShift, please cite it as below."
+message: "Please cite this software when using its code or results."
 type: software
-title: "PulseShift: Calibrated Forecasting of Weather-Driven Mobility Suppression and Hourly Identification of Air-Quality Effects"
-version: 1.0.0
-date-released: 2026-06-17
+title: "PulseShift: Weather and Bike-Share Demand"
+version: 1.1.0
+date-released: 2026-10-06
 url: "https://github.com/urmeo/PulseShift"
 repository-code: "https://github.com/urmeo/PulseShift"
 license: MIT
@@ -11,24 +11,3 @@ authors:
   - family-names: Bose
     given-names: Urme
     alias: urmeo
-keywords:
-  - outdoor-mobility
-  - bike-share
-  - physical-activity
-  - air-quality
-  - wildfire-smoke
-  - confounding
-  - fixed-effects
-  - calibration
-  - decision-curve-analysis
-abstract: >-
-  PulseShift forecasts whether weather and air quality will suppress a
-  planned outdoor session in Washington DC and recommends the safest way
-  to keep it, served as a calibrated model that runs in the browser. The
-  outcome is outdoor mobility, proxied by bike-share ridership. Its
-  evidence layer shows that, in this single-city case study, the daily
-  air-quality association with mobility is largely seasonal confounding:
-  a within-day fixed-effects analysis on hourly data collapses the
-  apparent effect toward zero, while calibration — not discrimination —
-  governs whether the forecast can be trusted. A second city (Seoul) is a
-  method-transfer check, not a replication of the confounding result.
