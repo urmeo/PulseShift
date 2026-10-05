@@ -1,5 +1,5 @@
-numpy==2.5.0  # exact pin for reproducibility; committed artifacts match this stack at 1e-6 (asserted in tests)
+numpy==2.5.0
 pandas==3.0.3
 scikit-learn==1.9.0
-scipy==1.18.0  # sklearn solver, pinned for reproducibility
+scipy==1.18.0
 matplotlib==3.11.0
