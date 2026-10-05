@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; connect-src https://api.weather.gov https://air-quality-api.open-meteo.com; base-uri 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; connect-src https://api.open-meteo.com https://air-quality-api.open-meteo.com; base-uri 'none'" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="PulseShift forecasts whether heat, cold, wind, or smoke will suppress an outdoor session, and the safest way to keep it — a calibrated model trained on real Washington DC data, running in your browser." />
+  <meta name="description" content="Estimate DC-area bike-share network demand suppression from weather and air quality. Research model with browser inference." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16'><circle cx='8' cy='8' r='7' fill='%2338bdf8'/></svg>" />
   <title>PulseShift</title>
   <link rel="stylesheet" href="styles.css" />
@@ -13,39 +13,43 @@
   <main class="app">
     <header>
       <h1>PulseShift</h1>
-      <p class="tag">Will climate stress suppress your outdoor session? A calibrated forecast and the safest way to keep it.</p>
+      <p class="tag">Weather, air quality and DC-area bike-share network demand.</p>
     </header>
 
     <section class="panel">
-      <form id="form">
+      <form id="form" aria-label="DC demand model inputs">
         <div class="grid">
           <label>Temperature (°F)
-            <input type="number" id="temp" value="85" min="0" max="130" step="1" />
+            <input type="number" id="temp" value="85" min="-40" max="130" step="any" required />
           </label>
           <label>Humidity (%)
-            <input type="number" id="humidity" value="55" min="1" max="100" step="1" />
+            <input type="number" id="humidity" value="55" min="0" max="100" step="any" required />
           </label>
           <label>Air Quality Index
-            <input type="number" id="aqi" value="60" min="0" max="500" step="1" />
+            <input type="number" id="aqi" value="60" min="0" max="500" step="any" required />
           </label>
           <label>Wind (mph)
-            <input type="number" id="wind" value="6" min="0" max="60" step="1" />
+            <input type="number" id="wind" value="6" min="0" max="100" step="any" required />
           </label>
-          <label>Rain (in/hr)
-            <input type="number" id="precip" value="0" min="0" max="3" step="0.05" />
+          <label>Precipitation (in/hr)
+            <input type="number" id="precip" value="0" min="0" max="5" step="any" required />
           </label>
-          <label>Start hour
+          <label>Visibility (mi)
+            <input type="number" id="visibility" value="10" min="0" max="10" step="any" required />
+          </label>
+          <label>Start hour (DC time)
             <select id="hour"></select>
           </label>
           <label class="check"><input type="checkbox" id="weekend" /> Weekend</label>
-          <label class="check" title="Sets visibility to ~3 mi and the smoke flag. Toggling this barely moves the model — the smoke flag and the reduced-visibility term roughly cancel, and air quality adds little beyond weather here."><input type="checkbox" id="smoke" /> Wildfire smoke / haze</label>
-          <p class="hint">Smoke / haze assumes reduced visibility (~3 mi). In the DC training data, air quality added almost nothing beyond weather — see the paper for why.</p>
+          <label class="check"><input type="checkbox" id="smoke" /> Smoke / haze present</label>
+          <p class="hint">Enter visibility separately. Smoke/haze is a manual observation, not inferred from AQI.</p>
         </div>
-        <button type="button" id="live" class="ghost">Use live DC weather</button>
+        <button type="button" id="live" class="ghost">Load DC forecast</button>
+        <p class="error" id="error" role="alert"></p>
       </form>
     </section>
 
-    <section class="result" id="result" aria-live="polite" hidden>
+    <section class="result" id="result" aria-label="Demand suppression estimate" aria-live="polite" aria-atomic="true" hidden>
       <div class="risk" id="risk">
         <span class="pct" id="pct">—</span>
         <span class="band" id="band">—</span>
@@ -53,11 +57,13 @@
       <p class="reco" id="reco"></p>
       <p class="detail" id="detail"></p>
       <p class="detail" id="besthour"></p>
+      <p class="hint" id="forecastnote"></p>
     </section>
 
     <footer>
       <span id="meta"></span>
-      <a href="https://github.com/urmeo/PulseShift">Code &amp; paper</a>
+      <a href="https://github.com/urmeo/PulseShift">Code &amp; results</a>
+      <a href="https://open-meteo.com/">Weather data</a>
     </footer>
     <p class="hint" id="modelnote"></p>
   </main>

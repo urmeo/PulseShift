@@ -1,17 +1,28 @@
 const M = window.PULSESHIFT_MODEL;
 const $ = (id) => document.getElementById(id);
+const TZ = "America/New_York";
+const COLD_BASE = M.stress.cold_base_f;
+const HEAT_BASE = M.stress.heat_base_f;
+let editRevision = 0;
 
 function heatIndex(t, rh) {
-  if (t < 80 || rh < 40) return t;
-  const hi =
-    -42.379 + 2.04901523 * t + 10.14333127 * rh - 0.22475541 * t * rh -
-    0.00683783 * t * t - 0.05481717 * rh * rh + 0.00122874 * t * t * rh +
-    0.00085282 * t * rh * rh - 0.00000199 * t * t * rh * rh;
-  return Math.round(hi * 10) / 10;
+  const simple = (0.5 * (t + 61 + (t - 68) * 1.2 + rh * 0.094) + t) / 2;
+  let hi = simple;
+  if (simple >= 80) {
+    hi = -42.379 + 2.04901523 * t + 10.14333127 * rh - 0.22475541 * t * rh -
+      0.00683783 * t * t - 0.05481717 * rh * rh + 0.00122874 * t * t * rh +
+      0.00085282 * t * rh * rh - 0.00000199 * t * t * rh * rh;
+    if (rh < 13 && t >= 80 && t <= 112) {
+      hi -= ((13 - rh) / 4) * Math.sqrt((17 - Math.abs(t - 95)) / 17);
+    } else if (rh > 85 && t >= 80 && t <= 87) {
+      hi += ((rh - 85) / 10) * ((87 - t) / 5);
+    }
+  }
+  const scaled = hi * 10;
+  const floor = Math.floor(scaled);
+  const rounded = scaled - floor === 0.5 ? floor + (Math.abs(floor) % 2) : Math.round(scaled);
+  return rounded / 10;
 }
-
-const COLD_BASE = (M.stress && M.stress.cold_base_f) ?? 55;   // exported from config; fallback for older model.json
-const HEAT_BASE = (M.stress && M.stress.heat_base_f) ?? 85;
 
 function features(input) {
   const angle = (2 * Math.PI * input.hour) / 24;
@@ -24,7 +35,7 @@ function features(input) {
     humidity: input.humidity,
     wind_mph: input.wind,
     precip_in: input.precip,
-    visibility_mi: input.smoke ? 3 : 10,
+    visibility_mi: input.visibility,
     smoke_haze: input.smoke ? 1 : 0,
     hour_sin: Math.sin(angle),
     hour_cos: Math.cos(angle),
@@ -36,8 +47,12 @@ function risk(input) {
   const f = features(input);
   let z = M.intercept;
   M.features.forEach((name, i) => {
+    if (!Number.isFinite(f[name]) || !Number.isFinite(M.coef[i]) || !(M.scale[i] > 0)) {
+      throw new Error("Model inputs or coefficients are invalid.");
+    }
     z += M.coef[i] * ((f[name] - M.mean[i]) / M.scale[i]);
   });
+  if (!Number.isFinite(z)) throw new Error("Model score is invalid.");
   return 1 / (1 + Math.exp(-z));
 }
 
@@ -45,100 +60,102 @@ function riskBand(p) {
   if (p < 0.15) return { label: "Low", cls: "low" };
   if (p < 0.35) return { label: "Moderate", cls: "moderate" };
   if (p < 0.6) return { label: "High", cls: "high" };
-  return { label: "Severe", cls: "severe" };
-}
-
-function recommend(p, unsafe) {
-  if (unsafe) {
-    return "Unsafe for outdoor activity — move indoors or reschedule.";
-  }
-  if (p >= 0.6) return "High suppression risk — consider a different time of day or rescheduling.";
-  if (p >= 0.35) return "Elevated risk — shorten the session and watch conditions.";
-  if (p >= 0.15) return "Moderate risk — plan for adverse conditions and keep it flexible.";
-  return "Conditions look favorable — keep your plan.";
+  return { label: "Very high", cls: "severe" };
 }
 
 function num(id) {
   const e = $(id);
-  let v = e.valueAsNumber;   // NaN when the field is empty or invalid
-  if (Number.isNaN(v)) v = Number(e.defaultValue) || 0;
-  const min = e.min !== "" ? Number(e.min) : -Infinity;
-  const max = e.max !== "" ? Number(e.max) : Infinity;
-  return Math.min(max, Math.max(min, v));
+  const v = e.valueAsNumber;
+  const valid = Number.isFinite(v) && e.checkValidity();
+  e.setAttribute("aria-invalid", String(!valid));
+  if (!valid) throw new Error("Enter a valid value for " + e.closest("label").firstChild.textContent.trim() + ".");
+  return v;
 }
 
 function read() {
+  const hour = Number($("hour").value);
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) throw new Error("Select a start hour.");
   return {
-    temp: num("temp"),
-    humidity: num("humidity"),
-    aqi: num("aqi"),
-    wind: num("wind"),
-    precip: num("precip"),
-    hour: Number($("hour").value),
-    weekend: $("weekend").checked,
-    smoke: $("smoke").checked,
+    temp: num("temp"), humidity: num("humidity"), aqi: num("aqi"),
+    wind: num("wind"), precip: num("precip"), visibility: num("visibility"),
+    hour, weekend: $("weekend").checked, smoke: $("smoke").checked,
   };
 }
 
 function update() {
-  const input = read();
-  const hi = heatIndex(input.temp, input.humidity);
-  const p = risk(input);
-  const unsafe = hi >= M.safety.heat_unsafe_f || input.aqi >= M.safety.aqi_unsafe;
-  const b = unsafe ? { label: "Unsafe conditions", cls: "severe" } : riskBand(p);
-
-  $("result").hidden = false;
-  $("risk").className = "risk " + b.cls;
-  $("pct").textContent = unsafe ? "⚠" : Math.round(p * 100) + "%";
-  $("band").textContent = unsafe ? "unsafe to exercise outdoors" : b.label + " suppression risk";
-  $("reco").textContent = recommend(p, unsafe);
-  $("detail").textContent = unsafe
-    ? `Heat index ${Math.round(hi)}°F · AQI ${input.aqi} · model suppression ${Math.round(p * 100)}%`
-    : `Heat index ${Math.round(hi)}°F · AQI ${input.aqi}`;
   $("besthour").textContent = "";
+  try {
+    const input = read();
+    const hi = heatIndex(input.temp, input.humidity);
+    const p = risk(input);
+    const excluded = hi >= M.safety.heat_unsafe_f || input.aqi >= M.safety.aqi_unsafe;
+    const b = excluded ? { label: "Study threshold exceeded", cls: "severe" } : riskBand(p);
+    $("result").hidden = false;
+    $("error").textContent = "";
+    $("risk").className = "risk " + b.cls;
+    $("pct").textContent = Math.round(p * 100) + "%";
+    $("band").textContent = b.label + (excluded ? "" : " demand suppression likelihood");
+    $("reco").textContent = excluded
+      ? `Study limits: heat index below ${M.safety.heat_unsafe_f}°F and AQI below ${M.safety.aqi_unsafe}. Follow official advisories.`
+      : "Estimated chance of network rides falling below half their seasonal expectation.";
+    $("detail").textContent = `Heat index ${hi}°F · AQI ${Math.round(input.aqi * 10) / 10}`;
+  } catch (e) {
+    $("result").hidden = true;
+    $("error").textContent = e.message;
+  }
 }
 
-function dcHourWeekend(iso) {
+function dcHourWeekend(epoch) {
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York", hour: "numeric", hour12: false, weekday: "short",
-  }).formatToParts(new Date(iso));
-  let hour = Number(parts.find((x) => x.type === "hour").value);
-  if (hour === 24) hour = 0;
+    timeZone: TZ, hour: "numeric", hourCycle: "h23", weekday: "short",
+  }).formatToParts(new Date(epoch * 1000));
+  const hour = Number(parts.find((x) => x.type === "hour").value);
   const wd = parts.find((x) => x.type === "weekday").value;
   return { hour, weekend: wd === "Sat" || wd === "Sun" };
 }
 
-function localHourKey(iso) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/New_York",
-    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hour12: false,
-  }).formatToParts(new Date(iso));
-  const get = (t) => parts.find((x) => x.type === t).value;
-  let h = get("hour");
-  if (h === "24") h = "00";
-  return `${get("year")}-${get("month")}-${get("day")}T${h}`;   // matches Open-Meteo local time keys
+function forecastInputs(weather, air, smoke, now = Date.now()) {
+  const units = weather.hourly_units;
+  const h = weather.hourly;
+  const a = air.hourly;
+  if (!units || units.time !== "unixtime" || units.temperature_2m !== "°F" ||
+      units.relative_humidity_2m !== "%" || !["mp/h", "mph"].includes(units.wind_speed_10m) ||
+      units.precipitation !== "inch" || !["m", "ft"].includes(units.visibility) ||
+      !air.hourly_units || air.hourly_units.time !== "unixtime" || air.hourly_units.us_aqi !== "USAQI" || !h || !a) {
+    throw new Error("Unexpected forecast units or fields.");
+  }
+  const fields = ["temperature_2m", "relative_humidity_2m", "wind_speed_10m", "precipitation", "visibility"];
+  if (!Array.isArray(h.time) || !fields.every((f) => Array.isArray(h[f]) && h[f].length === h.time.length) ||
+      !Array.isArray(a.time) || !Array.isArray(a.us_aqi) || a.time.length !== a.us_aqi.length) {
+    throw new Error("Incomplete forecast response.");
+  }
+  const aqiByTime = new Map(a.time.map((t, i) => [t, a.us_aqi[i]]));
+  const start = Math.floor(now / 3600000) * 3600;
+  const rows = [];
+  h.time.forEach((epoch, i) => {
+    if (!Number.isFinite(epoch) || epoch < start || epoch >= start + 86400) return;
+    const input = {
+      epoch, temp: h.temperature_2m[i], humidity: h.relative_humidity_2m[i],
+      wind: h.wind_speed_10m[i], precip: h.precipitation[i], aqi: aqiByTime.get(epoch),
+      visibility: Math.min(10, h.visibility[i] / (units.visibility === "ft" ? 5280 : 1609.344)),
+      ...dcHourWeekend(epoch), smoke,
+    };
+    if (!fields.every((f) => Number.isFinite(h[f][i])) || !Number.isFinite(input.aqi) ||
+        input.temp < -40 || input.temp > 130 || input.humidity < 0 || input.humidity > 100 ||
+        input.aqi < 0 || input.aqi > 500 || input.wind < 0 || input.wind > 100 ||
+        input.precip < 0 || input.precip > 5 || input.visibility < 0) return;
+    rows.push(input);
+  });
+  return rows.sort((x, y) => x.epoch - y.epoch);
 }
 
-function windMph(s) {
-  const nums = String(s).match(/\d+/g);   // NWS gives "8 mph" or ranges like "5 to 10 mph"
-  return nums ? nums.map(Number).reduce((a, b) => a + b, 0) / nums.length : null;
-}
-
-function bestSafeHour(periods, aqiByHour, fallbackAqi) {
+function bestForecastHour(rows) {
   let best = null;
-  for (const p of periods.slice(0, 24)) {
-    const { hour, weekend } = dcHourWeekend(p.startTime);
-    if (hour < 6 || hour > 21) continue;
-    const aqi = aqiByHour && aqiByHour[localHourKey(p.startTime)] != null
-      ? aqiByHour[localHourKey(p.startTime)]
-      : fallbackAqi;
-    if (aqi >= M.safety.aqi_unsafe) continue;   // skip hours whose air is unsafe
-    const rh = p.relativeHumidity && p.relativeHumidity.value != null ? p.relativeHumidity.value : 50;
-    const pop = p.probabilityOfPrecipitation && p.probabilityOfPrecipitation.value != null ? p.probabilityOfPrecipitation.value : 0;
-    const hi = heatIndex(p.temperature, rh);
-    if (hi >= M.safety.heat_unsafe_f) continue;
-    const r = risk({ temp: p.temperature, humidity: rh, aqi, wind: windMph(p.windSpeed) ?? 0, precip: (pop / 100) * 0.1, hour, weekend, smoke: false });
-    if (!best || r < best.risk) best = { hour, risk: r, aqi };
+  for (const input of rows) {
+    if (input.hour < 6 || input.hour > 21 || input.aqi >= M.safety.aqi_unsafe ||
+        heatIndex(input.temp, input.humidity) >= M.safety.heat_unsafe_f) continue;
+    const p = risk(input);
+    if (!best || p < best.risk) best = { ...input, risk: p };
   }
   return best;
 }
@@ -147,7 +164,9 @@ async function fetchJson(url, ms = 8000) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
   try {
-    return await fetch(url, { signal: ctrl.signal }).then((r) => r.json());
+    const response = await fetch(url, { signal: ctrl.signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
   } finally {
     clearTimeout(timer);
   }
@@ -155,51 +174,48 @@ async function fetchJson(url, ms = 8000) {
 
 async function liveWeather() {
   const btn = $("live");
+  if (btn.disabled) return;
+  const revision = editRevision;
+  const now = Date.now();
+  btn.disabled = true;
   btn.textContent = "Loading…";
   btn.setAttribute("aria-busy", "true");
+  $("error").textContent = "";
+  $("besthour").textContent = "";
+  $("forecastnote").textContent = "";
   try {
-    const point = await fetchJson("https://api.weather.gov/points/38.8951,-77.0364");
-    const hourly = await fetchJson(point.properties.forecastHourly);
-    const now = hourly.properties.periods[0];
-    $("temp").value = now.temperature;
-    if (now.relativeHumidity && now.relativeHumidity.value != null) $("humidity").value = now.relativeHumidity.value;
-    const w = windMph(now.windSpeed);
-    if (w != null) $("wind").value = Math.round(w);   // 0 mph is a real calm reading, not "missing"
-
-    // per-hour air quality (Open-Meteo CAMS forecast, keyless), so the safest hour
-    // reflects how AQI actually moves over the day rather than a single frozen value
-    let aqiByHour = null;
-    try {
-      const aq = await fetchJson(
-        "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=38.8951&longitude=-77.0364&hourly=us_aqi&forecast_days=2&timezone=America%2FNew_York"
-      );
-      if (aq && aq.hourly && Array.isArray(aq.hourly.time) && Array.isArray(aq.hourly.us_aqi)) {
-        aqiByHour = {};
-        aq.hourly.time.forEach((t, i) => { aqiByHour[t.slice(0, 13)] = aq.hourly.us_aqi[i]; });
-        const nowAqi = aqiByHour[localHourKey(now.startTime)];
-        if (nowAqi != null) $("aqi").value = Math.round(nowAqi);
-      } else {
-        console.warn("PulseShift: unexpected air-quality response; falling back to a constant AQI");
-      }
-    } catch (e) {
-      aqiByHour = null;
-      console.warn("PulseShift: hourly air-quality fetch failed; falling back to a constant AQI", e);
+    const query = "latitude=38.8951&longitude=-77.0364&forecast_hours=25&timeformat=unixtime&timezone=America%2FNew_York";
+    const [weather, air] = await Promise.all([
+      fetchJson("https://api.open-meteo.com/v1/forecast?" + query +
+        "&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation,visibility&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch"),
+      fetchJson("https://air-quality-api.open-meteo.com/v1/air-quality?" + query + "&hourly=us_aqi"),
+    ]);
+    if (revision !== editRevision) {
+      $("error").textContent = "Inputs changed during loading. Load the forecast again to replace them.";
+      return;
     }
-
-    btn.textContent = "Live DC weather loaded";
+    const rows = forecastInputs(weather, air, $("smoke").checked, now);
+    const first = rows.find((r) => r.epoch === Math.floor(now / 3600000) * 3600);
+    if (!first) throw new Error("Current-hour weather or AQI is missing.");
+    ["temp", "humidity", "aqi", "wind", "precip", "visibility", "hour"].forEach((id) => { $(id).value = first[id]; });
+    $("weekend").checked = first.weekend;
     update();
-    const fallbackAqi = Number($("aqi").value);
-    const best = bestSafeHour(hourly.properties.periods, aqiByHour, fallbackAqi);
-    const aqiNote = aqiByHour ? `, AQI ${Math.round(best ? best.aqi : fallbackAqi)}` : ", AQI held constant";
+    const best = bestForecastHour(rows);
+    const stamp = best && new Intl.DateTimeFormat("en-US", {
+      timeZone: TZ, weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZoneName: "short",
+    }).format(new Date(best.epoch * 1000));
     $("besthour").textContent = best
-      ? `Lowest-risk safe daytime hour ahead: ${String(best.hour).padStart(2, "0")}:00 (~${Math.round(best.risk * 100)}% risk${aqiNote}, est.)`
-      : fallbackAqi >= M.safety.aqi_unsafe
-        ? "Air quality is unsafe — stay indoors."
-        : "No safe daytime hour in the forecast window — consider indoors.";
+      ? `Lowest estimated suppression within study limits: ${stamp} (${Math.round(best.risk * 100)}%, AQI ${Math.round(best.aqi)}).`
+      : "No complete daytime forecast hour meets the study's heat and AQI limits.";
+    $("forecastnote").textContent = "Open-Meteo hourly weather + CAMS AQI forecast; visibility capped at the training sensor's 10 mi limit. Smoke/haze uses your checkbox setting. Missing hours are excluded.";
+    btn.textContent = "DC forecast loaded";
   } catch (e) {
-    console.warn("PulseShift: live weather fetch failed", e);
-    btn.textContent = "Live weather unavailable — enter manually";
+    $("besthour").textContent = "";
+    $("forecastnote").textContent = "";
+    $("error").textContent = "Forecast unavailable: " + e.message + " Enter conditions manually.";
   } finally {
+    if (btn.textContent === "Loading…") btn.textContent = "Load DC forecast";
+    btn.disabled = false;
     btn.removeAttribute("aria-busy");
   }
 }
@@ -213,13 +229,17 @@ function init() {
     sel.appendChild(o);
   }
   sel.value = 17;
-
-  document.querySelectorAll("input, select").forEach((el) => el.addEventListener("input", update));
+  document.querySelectorAll("input, select").forEach((el) => el.addEventListener("input", () => {
+    editRevision++;
+    if (!$("live").disabled) $("live").textContent = "Load DC forecast";
+    $("forecastnote").textContent = "";
+    update();
+  }));
+  $("form").addEventListener("submit", (event) => { event.preventDefault(); update(); });
   $("live").addEventListener("click", liveWeather);
-  $("meta").textContent = `Trained on ${M.meta.trained_on} · 2024 hold-out AUROC ${M.meta.auroc_2024}`;
+  $("meta").textContent = `DC 2022–2024 · 2024 hold-out AUROC ${M.meta.auroc_2024}`;
   $("meta").title = M.meta.metrics_note;
-  $("modelnote").textContent =
-    "Forecast metrics are an out-of-time hold-out estimate; the served model is refit on all three years. Educational tool, not safety advice — obey official heat and air-quality advisories.";
+  $("modelnote").textContent = "DC-area bike-share network demand, not personal exercise risk. Retrospective hold-out metrics; served coefficients use all three years. Forecast inputs have not been prospectively validated.";
   update();
 }
 
