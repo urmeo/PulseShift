@@ -21,7 +21,7 @@ Dependencies are pinned. Test changed behavior; keep commit titles short.
 
 ```bash
 cd research
-shasum -a 256 -c data/processed/panel.sha256
+(cd data/processed && shasum -a 256 -c panel.sha256)
 PYTHONPATH=. python scripts/run_analysis.py
 PYTHONPATH=. python scripts/train_model.py
 PYTHONPATH=. python scripts/validate_seoul.py
