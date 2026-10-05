@@ -60,7 +60,7 @@ def within_day_effect(
 ) -> dict:
     """Hourly ride ratio on AQI with day and hour fixed effects (intraday)."""
     df = _ride_ratio(work)
-    varies = df.groupby("day")["aqi"].transform("nunique") > 1  # drop flat days
+    varies = df.groupby("day")["aqi"].transform("nunique") > 1
     df = df[varies].reset_index(drop=True)
     reg = ["aqi", *controls]
     hours = pd.get_dummies(df["hour"], prefix="h", drop_first=True).astype(float)
@@ -77,6 +77,15 @@ def _ols_ci(
     X, y, k: int, n_unit: int, n_boot: int, seed: int, cluster=None, scale: int = 50
 ) -> dict:
     """Coefficient k per +50 AQI, with bootstrap CI, SE, and detectable effect."""
+    X, y = np.asarray(X, dtype=float), np.asarray(y, dtype=float)
+    if X.ndim != 2 or y.ndim != 1 or len(X) != len(y) or len(y) < 2:
+        raise ValueError("AQI regression requires paired rows")
+    if not np.isfinite(X).all() or not np.isfinite(y).all():
+        raise ValueError("AQI regression inputs must be finite")
+    if not isinstance(n_boot, (int, np.integer)) or n_boot < 2 or n_unit < 2:
+        raise ValueError(
+            "AQI uncertainty requires at least two units and bootstrap draws"
+        )
     point = float(LinearRegression().fit(X, y).coef_[k] * scale)
     rng = np.random.default_rng(seed)
     vals = []
@@ -97,12 +106,12 @@ def _ols_ci(
     lo, hi = np.percentile(arr, [2.5, 97.5])
     se = float(arr.std(ddof=1))
     return {
-        "effect_per_50": round(point, 3),
-        "ci_low": round(float(lo), 3),
-        "ci_high": round(float(hi), 3),
-        "se": round(se, 3),
-        "mde80": round(Z80 * se, 3),
-        "mde90": round(Z90 * se, 3),
+        "effect_per_50": point,
+        "ci_low": float(lo),
+        "ci_high": float(hi),
+        "se": se,
+        "mde80": Z80 * se,
+        "mde90": Z90 * se,
         "n": int(n_unit),
     }
 
@@ -112,18 +121,11 @@ def measurement_error_bound(
     beta_per_50: float,
     reliabilities: tuple[float, ...] = (0.7, 0.5, 0.3),
 ) -> dict:
-    """Attenuation-corrected within-day effect under classical exposure error.
-
-    CAMS reliability is the slope of EPA-daily on CAMS-daily (two same-scale
-    error-prone measures of true AQI); corrected effect = beta / reliability.
-
-    Caveat: this reliability is estimated at the DAILY level, but it corrects a
-    WITHIN-DAY (intraday) estimate. Intraday CAMS reliability is unobserved and
-    plausibly lower than daily, so the empirical row is conservative-correct only
-    under the assumption that intraday reliability >= daily; the assumed-rho rows
-    bracket the lower-reliability case. Ground-station hourly data would replace
-    this assumption with a measured intraday reliability.
-    """
+    """Assumed classical-error scenarios; daily source agreement is descriptive."""
+    if not np.isfinite(beta_per_50) or any(
+        not np.isfinite(rho) or not 0 < rho <= 1 for rho in reliabilities
+    ):
+        raise ValueError("attenuation scenarios require finite beta and 0 < rho <= 1")
     df = work.dropna(subset=["aqi_hourly"]).copy()
     df["day"] = df["ts_local"].dt.normalize()
     daily = (
@@ -131,31 +133,38 @@ def measurement_error_bound(
         .agg(cams=("aqi_hourly", "mean"), epa=("aqi_epa_daily", "first"))
         .dropna()
     )
-    cov = np.cov(daily["cams"], daily["epa"])
-    lam = float(cov[0, 1] / cov[0, 0])
-    r = float(np.corrcoef(daily["cams"], daily["epa"])[0, 1])
+    slope, correlation = None, None
+    if len(daily) > 1 and daily["cams"].std() > 0:
+        cov = np.cov(daily["cams"], daily["epa"])
+        slope = float(cov[0, 1] / cov[0, 0])
+        if daily["epa"].std() > 0:
+            correlation = float(np.corrcoef(daily["cams"], daily["epa"])[0, 1])
     rows = [
-        {
-            "reliability": "empirical",
-            "rho": round(lam, 2),
-            "corrected_per_50": round(beta_per_50 / lam, 3),
-        }
-    ]
-    rows += [
         {
             "reliability": "assumed",
             "rho": rho,
-            "corrected_per_50": round(beta_per_50 / rho, 3),
+            "corrected_per_50": beta_per_50 / rho,
         }
         for rho in reliabilities
     ]
-    return {"cams_epa_corr": round(r, 3), "reliability": round(lam, 3), "rows": rows}
+    return {
+        "daily_comparison": "EPA daily AQI versus CAMS hourly daily mean",
+        "daily_days": len(daily),
+        "cams_epa_corr": correlation,
+        "cams_epa_slope": slope,
+        "intraday_reliability_measured": False,
+        "rows": rows,
+    }
 
 
 def smoke_episodes(
     work: pd.DataFrame, aqi_thresh: int = 100, n_boot: int = 1000, seed: int = 0
 ) -> dict:
     """High-AQI hours vs same season-hour clean baseline, day-clustered CI."""
+    if not np.isfinite(aqi_thresh) or aqi_thresh < 0 or n_boot < 2:
+        raise ValueError(
+            "smoke comparison requires nonnegative AQI and at least two draws"
+        )
     df = _ride_ratio(work)
     df["polluted"] = df["aqi"] >= aqi_thresh
     base = (
@@ -170,6 +179,18 @@ def smoke_episodes(
         .dropna(subset=["clean_ratio"])
     )
     rel = (hot["ride_ratio"] / hot["clean_ratio"]).to_numpy()
+    valid = np.isfinite(rel)
+    hot, rel = hot.loc[valid].copy(), rel[valid]
+    if not len(hot):
+        return {
+            "aqi_threshold": aqi_thresh,
+            "polluted_hours": 0,
+            "polluted_days": 0,
+            "ride_ratio_vs_clean": None,
+            "ci_low": None,
+            "ci_high": None,
+            "median_aqi_polluted": None,
+        }
 
     rng = np.random.default_rng(seed)
     days = hot["day"].to_numpy()
@@ -187,10 +208,8 @@ def smoke_episodes(
         "aqi_threshold": aqi_thresh,
         "polluted_hours": len(hot),
         "polluted_days": int(hot["day"].nunique()),
-        "ride_ratio_vs_clean": round(float(rel.mean()), 3),
-        "ci_low": round(float(lo), 3),
-        "ci_high": round(float(hi), 3),
-        "median_aqi_polluted": round(
-            float(hot["aqi"].median()), 1
-        ),  # matched set, as counted
+        "ride_ratio_vs_clean": float(rel.mean()),
+        "ci_low": float(lo),
+        "ci_high": float(hi),
+        "median_aqi_polluted": float(hot["aqi"].median()),
     }

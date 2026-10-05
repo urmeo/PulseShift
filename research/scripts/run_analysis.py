@@ -1,10 +1,4 @@
-"""Train, evaluate, and produce every paper figure and table.
-
-Orchestrated as a sequence of small steps so each analysis block is readable on its own:
-fit -> compare -> calibrate CIs -> coefficients -> decision/cost -> figures -> RAM ->
-smoke event -> AQI identification -> AQI coefficient -> ablation -> subgroups ->
-threshold sensitivity -> summary.
-"""
+"""Evaluate the temporal holdout and write research figures and tables."""
 
 from __future__ import annotations
 
@@ -33,6 +27,7 @@ from pulseshift.models import (
     temporal_split,
 )
 from pulseshift.panel import active, label_suppression, load_panel, suppression_mask
+from pulseshift.provenance import artifact_provenance
 from pulseshift.tables import write_table as _write_table
 
 
@@ -44,7 +39,7 @@ def fit_models(
     logit_unw = fit_logistic(train_all, balanced=False)
     logit = fit_logistic(train_all, balanced=True)
     calibrated = calibrate_cv(train_all, method="isotonic", cv=5, balanced=True)
-    served = fit_logistic(work, balanced=False)  # all-data model shipped in the app
+    served = fit_logistic(work, balanced=False)
     preds = {
         "clim": clim.predict_proba(test)[:, 1],
         "unw": predict(logit_unw, test),
@@ -56,6 +51,10 @@ def fit_models(
 
 
 def model_comparison(test: pd.DataFrame, preds: dict) -> pd.DataFrame:
+    _write_table(
+        test[["ts_utc", "ts_local", "suppressed"]].assign(**preds),
+        "holdout_predictions",
+    )
     comparison = pd.DataFrame(
         [
             {"model": "Climatology", **metrics(test["suppressed"], preds["clim"])},
@@ -80,7 +79,7 @@ def model_comparison(test: pd.DataFrame, preds: dict) -> pd.DataFrame:
 
 def served_confidence_intervals(test: pd.DataFrame, p_unw: np.ndarray) -> dict:
     yt = test["suppressed"].to_numpy()
-    days = test["ts_local"].dt.normalize().to_numpy()  # cluster by day
+    days = test["ts_local"].dt.normalize().to_numpy()
     ci = {
         "auroc": bootstrap_ci(
             yt, p_unw, roc_auc_score, require_two_classes=True, groups=days
@@ -138,8 +137,6 @@ def decision_and_cost(test: pd.DataFrame, p_unw: np.ndarray) -> list:
         "decision_curve",
     )
 
-    # net benefit is maximized at the lowest thresholds, so pick thresholds from a stated
-    # cost ratio (missed suppression vs unnecessary shift): threshold = 1 / (1 + ratio).
     cost_rows = []
     for ratio in (5, 10, 20):
         t = 1 / (1 + ratio)
@@ -175,7 +172,7 @@ def figures(
                 comparison.iloc[0]["auroc"],
             ),
             "Balanced": (test["suppressed"], preds["bal"], comparison.iloc[2]["auroc"]),
-            "Unweighted (served)": (
+            "Unweighted (holdout)": (
                 test["suppressed"],
                 preds["unw"],
                 comparison.iloc[1]["auroc"],
@@ -190,12 +187,29 @@ def figures(
 def recovered_active_minutes(
     test: pd.DataFrame, p_unw: np.ndarray
 ) -> tuple[pd.DataFrame, dict, dict, list]:
-    """Time-shift policy + safety audit; RAM% bootstrapped over days."""
+    """Predicted-risk time-shift scenario, bootstrapped over days."""
     scored = test.assign(risk=p_unw)
     reco = ram.recommend(scored)
     ram_stats = ram.ram_table(reco)
     plots.ram_by_month(reco, ram_stats["per_hour"])
     audit = safety.audit(reco)
+    _write_table(
+        reco[
+            [
+                "ts_utc",
+                "ts_local",
+                "hour",
+                "risk",
+                "expected_rides",
+                "action",
+                "target_hour",
+                "chosen_risk",
+                "target_heat_index_f",
+                "target_aqi",
+            ]
+        ].assign(scenario_gain=ram_stats["per_hour"].to_numpy()),
+        "policy_predictions",
+    )
 
     by_day = (
         pd.DataFrame(
@@ -216,7 +230,7 @@ def recovered_active_minutes(
         ratios.append(
             g["recovered"].sum() / g["lost"].sum() if g["lost"].sum() else 0.0
         )
-    ram_ci = [round(float(x), 3) for x in np.percentile(ratios, [2.5, 97.5])]
+    ram_ci = [float(x) for x in np.percentile(ratios, [2.5, 97.5])]
     return scored, ram_stats, audit, ram_ci
 
 
@@ -257,7 +271,7 @@ def smoke_event(panel: pd.DataFrame) -> dict:
 
 
 def aqi_identification(work: pd.DataFrame) -> dict:
-    """Identification ladder: marginal -> between-day -> within-day fixed effects."""
+    """Daily-peak and hourly AQI associations with different controls."""
     between = airquality.between_day_effect(work)
     within = airquality.within_day_effect(work)
     episodes = airquality.smoke_episodes(work, aqi_thresh=100)
@@ -297,7 +311,7 @@ def aqi_identification(work: pd.DataFrame) -> dict:
 
 
 def aqi_coefficient(work: pd.DataFrame) -> list:
-    """Served logistic AQI coefficient: hourly measure vs daily measure."""
+    """All-data logistic coefficient: composite hourly versus daily AQI."""
     ai = MODEL_FEATURES.index("aqi")
     hourly = fit_logistic(work, balanced=False)
     daily = fit_logistic(work.assign(aqi=work["aqi_epa_daily"]), balanced=False)
@@ -488,6 +502,14 @@ def main() -> None:
 
     step("write summary.json")
     summary = {
+        "provenance": artifact_provenance(),
+        "interpretation": {
+            "holdout": "2022–2023 fit evaluated on 2024; distinct from all-data served coefficients",
+            "calibration": "unweighted probabilities still overestimate 2024 suppression prevalence",
+            "policy": "ride-weighted predicted-risk scenario; full transfer assumed, not measured causal recovery",
+            "aqi": "daily-peak and hourly associations use different exposures; residual confounding and intraday measurement error remain",
+            "rider_burden": "aggregate rider-type hour rates, not individual or neighborhood equity",
+        },
         "panel_rows": len(panel),
         "active_hours": len(work),
         "train_rows": len(train_all),
@@ -497,7 +519,7 @@ def main() -> None:
         "served_ci": ci,
         "ram": {k: v for k, v in ram_stats.items() if k != "per_hour"},
         "ram_pct_ci": ram_ci,
-        "ram_pct_discounted_50": round(0.5 * ram_stats["ram_pct_of_lost"], 3),
+        "ram_pct_discounted_50": 0.5 * ram_stats["ram_pct_of_lost"],
         "safety": audit,
         "smoke_event": smoke_context,
         "aqi_identification": aqi,
@@ -511,7 +533,9 @@ def main() -> None:
             "floor": floor_sens,
         },
     }
-    (config.TABLES / "summary.json").write_text(json.dumps(summary, indent=2))
+    (config.TABLES / "summary.json").write_text(
+        json.dumps(summary, indent=2, allow_nan=False) + "\n"
+    )
     print("model_comparison:", json.dumps(summary["model_comparison"]))
     print(
         "RAM:",

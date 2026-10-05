@@ -1,3 +1,3 @@
-"""PulseShift research pipeline: climate-driven activity suppression forecasting."""
+"""Weather-driven bike-share demand research."""
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"

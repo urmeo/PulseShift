@@ -19,7 +19,7 @@ from pulseshift.panel import active, expected_rides, load_panel
 
 
 def test_heat_index_identity_and_amplifies():
-    assert float(heat_index_f(75, 30)) == 75
+    assert float(heat_index_f(75, 30)) == 74.3
     assert float(heat_index_f(95, 70)) > 95
 
 
@@ -35,9 +35,9 @@ def test_label_climatology_is_leak_free():
         }
     )
     exp = expected_rides(base)
-    # shape = median(100,200)=150; 2024 carries 2023 level (200/150) -> 200
+
     assert exp[2] == pytest.approx(200.0, rel=1e-6)
-    # changing the test year's volume must not change its expectation
+
     moved = base.copy()
     moved.loc[2, "rides_total"] = 99999
     assert expected_rides(moved)[2] == pytest.approx(exp[2], rel=1e-6)
@@ -56,7 +56,7 @@ def test_bootstrap_ci_ordered():
     lo, hi = bootstrap_ci(
         y, np.array([0.1, 0.2, 0.8, 0.9]), roc_auc_score, n=50, require_two_classes=True
     )
-    assert lo == hi == 1.0  # perfectly separable -> every valid resample scores AUROC 1
+    assert lo == hi == 1.0
 
 
 def test_policy_never_recommends_unsafe_hour():
@@ -95,7 +95,7 @@ def test_recommend_is_row_order_invariant():
             "expected_rides": [100, 100, 100, 100],
         }
     )
-    order = [2, 0, 3, 1]  # interleave the two days
+    order = [2, 0, 3, 1]
     shuffled = base.iloc[order].reset_index(drop=True)
 
     sorted_reco = ram.recommend(base).set_index("ts_local")
@@ -105,7 +105,7 @@ def test_recommend_is_row_order_invariant():
     pd.testing.assert_frame_equal(
         sorted_reco[cols].sort_index(), shuffled_reco[cols].sort_index()
     )
-    # a keep row must target its own hour (internal consistency)
+
     for reco in (sorted_reco, shuffled_reco):
         keep = reco[reco["action"] == "keep"]
         assert (keep["target_hour"] == keep["hour"]).all()
@@ -126,8 +126,8 @@ def _synthetic_aqi_panel():
     rows = []
     for d in range(12):
         start = pd.Timestamp("2024-01-01") + pd.Timedelta(days=d)
-        day_mean = 20 * d  # rising daily AQI
-        day_boost = 0.02 * d  # confounder: busy days are also dirty days
+        day_mean = 20 * d
+        day_boost = 0.02 * d
         for h in range(24):
             aqi = day_mean + 40 + 20 * np.sin(2 * np.pi * h / 24)
             ratio = 1.0 - 0.004 * aqi + day_boost + rng.normal(0, 0.01)
@@ -157,7 +157,7 @@ def test_within_day_removes_day_confounder():
     assert within["effect_per_50"] == pytest.approx(-0.2, abs=0.05)
     assert within["ci_low"] <= within["effect_per_50"] <= within["ci_high"]
     assert between["effect_per_50"] > within["effect_per_50"]
-    assert within["se"] > 0  # detectable effect scales with SE
+    assert within["se"] > 0
 
 
 def test_mde_matches_power_multipliers():
@@ -176,7 +176,7 @@ def test_smoke_episode_ci_ordered():
 def test_measurement_error_deattenuates():
     """Lower reliability scales the corrected effect further from zero."""
     panel = load_panel()
-    panel["aqi_hourly"] = panel["aqi"]  # synthetic perfect hourly coverage
+    panel["aqi_hourly"] = panel["aqi"]
     panel["aqi_epa_daily"] = panel["aqi"]
     out = airquality.measurement_error_bound(panel, beta_per_50=-2.0)
     by_rho = {
@@ -184,20 +184,17 @@ def test_measurement_error_deattenuates():
         for r in out["rows"]
         if r["reliability"] == "assumed"
     }
-    assert by_rho[0.5] < by_rho[0.7] < 0  # more error -> larger magnitude
+    assert by_rho[0.5] < by_rho[0.7] < 0
 
 
 def test_served_model_matches_export():
-    """model.json must reproduce a fresh unweighted fit: features, scaler, and coefficients.
-
-    The browser computes (x - mean) / scale then a dot product with coef plus
-    intercept, so every one of those arrays must match what the app ships, not
-    only the coefficients.
-    """
-    model_path = config.ROOT.parent / "model.json"
+    "model.js must reproduce a fresh unweighted fit: features, scaler, and coefficients."
+    model_path = config.ROOT.parent / "model.js"
     if not model_path.exists():
-        pytest.skip("model.json not built")
-    m = json.loads(model_path.read_text())
+        pytest.skip("model.js not built")
+    m = json.loads(
+        model_path.read_text().removeprefix("window.PULSESHIFT_MODEL = ").rstrip(";\n")
+    )
     assert list(m["features"]) == MODEL_FEATURES
     model = fit_logistic(active(load_panel()), balanced=False)
     scaler = model.named_steps["scale"]
@@ -210,10 +207,12 @@ def test_served_model_matches_export():
 
 def test_export_constants_match_config():
     """Exported safety + thermal-stress hinges must match config so the app can't drift."""
-    model_path = config.ROOT.parent / "model.json"
+    model_path = config.ROOT.parent / "model.js"
     if not model_path.exists():
-        pytest.skip("model.json not built")
-    m = json.loads(model_path.read_text())
+        pytest.skip("model.js not built")
+    m = json.loads(
+        model_path.read_text().removeprefix("window.PULSESHIFT_MODEL = ").rstrip(";\n")
+    )
     assert m["safety"]["heat_unsafe_f"] == config.HEAT_UNSAFE_F
     assert m["safety"]["aqi_unsafe"] == config.AQI_UNSAFE
     assert m["stress"]["cold_base_f"] == config.COLD_STRESS_BASE_F
@@ -240,7 +239,7 @@ def test_policy_shifts_out_of_unsafe_hour():
     """An unsafe hour is never kept; it moves to a safe slot and the audit stays clean."""
     reco = ram.recommend(
         _hourly_frame(
-            heat=[108, 85, 86, 87, 88, 89],  # 08:00 exceeds the heat envelope
+            heat=[108, 85, 86, 87, 88, 89],
             aqi=[60] * 6,
             risk=[0.9, 0.2, 0.3, 0.4, 0.5, 0.6],
         )
@@ -265,16 +264,13 @@ def test_policy_cancels_when_no_safe_window():
 
 
 def test_export_scores_match_pipeline():
-    """The shipped arrays must reproduce the model's probabilities, not just its coefficients.
-
-    The browser scores (x - mean) / scale, a dot product with coef, plus intercept
-    through a sigmoid; this reruns that arithmetic from model.json and checks it against
-    the fitted pipeline, so a scoring-formula drift is caught, not only a coefficient one.
-    """
-    model_path = config.ROOT.parent / "model.json"
+    "The shipped arrays must reproduce the model's probabilities, not just its coefficients."
+    model_path = config.ROOT.parent / "model.js"
     if not model_path.exists():
-        pytest.skip("model.json not built")
-    m = json.loads(model_path.read_text())
+        pytest.skip("model.js not built")
+    m = json.loads(
+        model_path.read_text().removeprefix("window.PULSESHIFT_MODEL = ").rstrip(";\n")
+    )
     work = active(load_panel())
     x = work[MODEL_FEATURES].to_numpy(dtype=float)
     z = float(m["intercept"]) + ((x - m["mean"]) / m["scale"]) @ np.asarray(m["coef"])
@@ -288,7 +284,7 @@ def test_panel_matches_committed_checksum():
     from pulseshift import panel
 
     assert (config.PROCESSED / "panel.sha256").exists()
-    panel.verify_checksum()  # raises ValueError on mismatch
+    panel.verify_checksum()
 
 
 def test_net_benefit_reference_and_dominance():
@@ -307,7 +303,7 @@ def test_ece_rewards_calibration():
     y_cal = (rng.uniform(0, 1, 5000) < p).astype(int)
     y_off = (rng.uniform(0, 1, 5000) < np.clip(p - 0.3, 0, 1)).astype(int)
     assert expected_calibration_error(y_cal, p) < expected_calibration_error(y_off, p)
-    assert 0.7 < calibration_fit(y_cal, p)[0] < 1.4  # calibrated -> slope near 1
+    assert 0.7 < calibration_fit(y_cal, p)[0] < 1.4
 
 
 def test_rider_burden_asymmetry():
@@ -337,4 +333,4 @@ def test_climatology_baseline_convention():
     assert np.allclose(proba.sum(axis=1), 1.0)
     assert proba[0, 1] == 1.0 and proba[2, 1] == 0.0
     unseen = pd.DataFrame({"season": ["winter"], "daytype": ["weekday"], "hour": [3]})
-    assert clim.predict_proba(unseen)[0, 1] == 0.5  # overall prior for an unseen cell
+    assert clim.predict_proba(unseen)[0, 1] == 0.5

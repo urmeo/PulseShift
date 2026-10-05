@@ -25,7 +25,7 @@ def strata_metrics(
                 "n": len(g),
                 "base_rate": float(y.mean()),
                 "auroc": auroc,
-                "brier": brier_score_loss(y, p) if len(np.unique(y)) == 2 else np.nan,
+                "brier": brier_score_loss(y, p),
                 "cal_slope": slope,
             }
         )

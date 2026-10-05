@@ -9,16 +9,33 @@ from . import config
 
 
 def _safe(heat_index_f, aqi):
-    return (heat_index_f < config.HEAT_UNSAFE_F) & (aqi < config.AQI_UNSAFE)
+    return (
+        np.isfinite(heat_index_f)
+        & np.isfinite(aqi)
+        & (heat_index_f < config.HEAT_UNSAFE_F)
+        & (aqi < config.AQI_UNSAFE)
+    )
 
 
 def recommend(
     panel: pd.DataFrame, risk_col: str = "risk", window: int = config.SHIFT_WINDOW_H
 ) -> pd.DataFrame:
     """Per active hour, choose keep or the lowest-risk safe time shift."""
+    if isinstance(window, bool) or not isinstance(window, int) or window < 0:
+        raise ValueError("window must be a nonnegative integer")
     df = panel.copy()
+    if df["ts_local"].isna().any():
+        raise ValueError("recommendations require valid local timestamps")
+    if not df["hour"].eq(df["ts_local"].dt.hour).all():
+        raise ValueError("hour must match the local timestamp")
+    probabilities = df[risk_col].to_numpy(dtype=float)
+    if (
+        not np.isfinite(probabilities).all()
+        or ((probabilities < 0) | (probabilities > 1)).any()
+    ):
+        raise ValueError("risk must contain finite probabilities in [0, 1]")
     orig_index = df.index
-    df = df.reset_index(drop=True)  # positional scatter needs a unique index
+    df = df.reset_index(drop=True)
     df["day"] = df["ts_local"].dt.date
     df["safe"] = _safe(df["heat_index_f"], df["aqi"])
 
@@ -36,10 +53,11 @@ def recommend(
         safe = day["safe"].to_numpy()
         heat = day["heat_index_f"].to_numpy()
         air = day["aqi"].to_numpy()
+        timestamps = day["ts_local"].to_numpy()
         for i in range(len(day)):
             pos = idx[i]
             near = np.abs(hours - hours[i]) <= window
-            feasible = near & safe  # stay within the safe envelope
+            feasible = near & safe
             if not feasible.any():
                 actions[pos] = "cancel"
                 target_risk[pos] = 1.0
@@ -47,11 +65,14 @@ def recommend(
                 t_aqi[pos] = air[i]
                 continue
             cand = np.where(feasible)[0]
-            best = cand[np.argmin(risk[cand])]
+            order = np.lexsort(
+                (timestamps[cand], np.abs(hours[cand] - hours[i]), risk[cand])
+            )
+            best = cand[order[0]]
             if not safe[i]:
-                action = "shift"  # must leave an unsafe hour
+                action = "shift"
             elif best == i or (risk[i] - risk[best]) < config.MIN_RISK_BENEFIT:
-                action, best = "keep", i  # benefit too small to bother
+                action, best = "keep", i
             else:
                 action = "shift"
             actions[pos] = action

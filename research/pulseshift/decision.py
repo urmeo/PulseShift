@@ -4,9 +4,20 @@ from __future__ import annotations
 
 import numpy as np
 
+from .evaluation import binary_predictions
+
 
 def net_benefit(y_true, y_prob, thresholds) -> tuple[np.ndarray, np.ndarray]:
-    y_true = np.asarray(y_true)
+    y_true, y_prob = binary_predictions(y_true, y_prob)
+    thresholds = np.asarray(thresholds, dtype=float)
+    if (
+        thresholds.ndim != 1
+        or not np.isfinite(thresholds).all()
+        or not ((thresholds > 0) & (thresholds < 1)).all()
+    ):
+        raise ValueError(
+            "decision thresholds must be finite and strictly between 0 and 1"
+        )
     n = len(y_true)
     prevalence = y_true.mean()
     model, treat_all = [], []

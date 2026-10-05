@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import gzip
+import io
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -54,18 +57,47 @@ PANEL_PATH = config.PROCESSED / "panel.csv.gz"
 CHECKSUM_PATH = config.PROCESSED / "panel.sha256"
 
 
-def _sha256(path) -> str:
+def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def verify_checksum(path=PANEL_PATH, checksum_path=CHECKSUM_PATH) -> None:
     """Raise if the committed panel no longer matches its recorded hash."""
     if not checksum_path.exists():
-        return
-    expected = checksum_path.read_text().split()[0]
+        raise FileNotFoundError(f"panel checksum missing: {checksum_path}")
+    parts = checksum_path.read_text().split()
+    if (
+        not parts
+        or len(parts[0]) != 64
+        or any(c not in "0123456789abcdef" for c in parts[0])
+    ):
+        raise ValueError(f"invalid panel checksum: {checksum_path}")
+    expected = parts[0]
     actual = _sha256(path)
     if actual != expected:
         raise ValueError(f"panel checksum mismatch: {actual} != {expected}")
+
+
+def write_panel(
+    df: pd.DataFrame, path: Path = PANEL_PATH, checksum_path: Path = CHECKSUM_PATH
+) -> None:
+    """Atomically write a reproducible gzip panel and its checksum."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".part")
+    try:
+        with temporary.open("wb") as stream:
+            with gzip.GzipFile(
+                filename="", mode="wb", fileobj=stream, mtime=0
+            ) as compressed:
+                with io.TextIOWrapper(compressed, encoding="utf-8", newline="") as text:
+                    df.to_csv(text, index=False)
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
+    checksum_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_hash = checksum_path.with_name(checksum_path.name + ".part")
+    temporary_hash.write_text(f"{_sha256(path)}  {path.name}\n")
+    temporary_hash.replace(checksum_path)
 
 
 def build_panel(write: bool = True) -> pd.DataFrame:
@@ -77,7 +109,7 @@ def build_panel(write: bool = True) -> pd.DataFrame:
         frame["ts_utc"] = pd.to_datetime(frame["ts_utc"])
 
     panel = (
-        bikes.merge(weather, on="ts_utc", how="inner")
+        bikes.merge(weather, on="ts_utc", how="inner", validate="one_to_one")
         .sort_values("ts_utc")
         .reset_index(drop=True)
     )
@@ -92,11 +124,11 @@ def build_panel(write: bool = True) -> pd.DataFrame:
     )
     panel["date"] = panel["ts_local"].dt.normalize()
     daily = aqi[["date", "aqi"]].rename(columns={"aqi": "aqi_epa_daily"})
-    panel = panel.merge(daily, on="date", how="left")
+    panel = panel.merge(daily, on="date", how="left", validate="many_to_one")
     panel["aqi_epa_daily"] = panel["aqi_epa_daily"].ffill().bfill()
 
     hourly = ingest.load_aqi_hourly()
-    panel = panel.merge(hourly, on="ts_local", how="left")
+    panel = panel.merge(hourly, on="ts_utc", how="left", validate="one_to_one")
     panel["aqi"] = panel["aqi_hourly"].fillna(panel["aqi_epa_daily"])
     panel["pm25"] = panel["pm25"].interpolate(limit=6)
 
@@ -108,17 +140,13 @@ def build_panel(write: bool = True) -> pd.DataFrame:
     panel["heat_stress"] = (panel["heat_index_f"] - config.HEAT_STRESS_BASE_F).clip(
         lower=0
     )
-    panel = panel.dropna(subset=MODEL_FEATURES).reset_index(
-        drop=True
-    )  # no NaN reaches the model
+    panel = panel.dropna(subset=MODEL_FEATURES).reset_index(drop=True)
 
     panel["expected_rides"] = expected_rides(panel)
     panel["active_hour"], panel["suppressed"] = label_suppression(panel)
 
     if write:
-        config.PROCESSED.mkdir(parents=True, exist_ok=True)
-        panel.to_csv(PANEL_PATH, index=False)
-        CHECKSUM_PATH.write_text(f"{_sha256(PANEL_PATH)}  panel.csv.gz\n")
+        write_panel(panel)
     return panel
 
 

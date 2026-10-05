@@ -25,7 +25,7 @@ def _download(url: str, dest) -> Path:
             if not chunk:
                 break
             out.write(chunk)
-    tmp.replace(dest)  # atomic: an interrupted download never looks complete
+    tmp.replace(dest)
     return dest
 
 
@@ -33,7 +33,7 @@ def _write_csv(df: pd.DataFrame, cache: Path) -> None:
     cache.parent.mkdir(parents=True, exist_ok=True)
     tmp = cache.with_name(cache.name + ".part")
     df.to_csv(tmp, index=False)
-    tmp.replace(cache)  # atomic: a crash mid-write never leaves a truncated cache
+    tmp.replace(cache)
 
 
 def _to_numeric(series: pd.Series) -> pd.Series:
@@ -113,8 +113,7 @@ def load_weather() -> pd.DataFrame:
 
     lcd = pd.concat(frames, ignore_index=True)
     stamp = pd.to_datetime(lcd["DATE"], errors="coerce")
-    # LCD is Local Standard Time (no DST); rides use wall-clock local.
-    # Both resolve to true UTC, so the hourly join pairs simultaneous conditions.
+
     lcd["ts_utc"] = (
         stamp.dt.tz_localize("Etc/GMT+5").dt.tz_convert("UTC").dt.tz_localize(None)
     )
@@ -130,7 +129,7 @@ def load_weather() -> pd.DataFrame:
         "HourlyVisibility",
     ]:
         lcd[col] = _to_numeric(lcd[col])
-    # precipitation: trace/blank read as 0
+
     lcd["HourlyPrecipitation"] = _to_numeric(lcd["HourlyPrecipitation"]).fillna(0)
 
     lcd["hour"] = lcd["ts_utc"].dt.floor("h")
@@ -180,25 +179,38 @@ def load_aqi() -> pd.DataFrame:
 
 
 def load_aqi_hourly() -> pd.DataFrame:
-    """Hourly US AQI and PM2.5 for DC (CAMS reanalysis, local time)."""
-    cache = config.INTERIM / "aqi_hourly.csv"
+    """CAMS global forecast archive, aligned by unique UTC hour."""
+    cache = config.INTERIM / "aqi_hourly_utc.csv"
     if cache.exists():
-        return pd.read_csv(cache, parse_dates=["ts_local"])
+        hourly = pd.read_csv(cache, parse_dates=["ts_utc"])
+        hourly["ts_utc"] = hourly["ts_utc"].astype("datetime64[ns]")
+        if hourly["ts_utc"].isna().any() or hourly["ts_utc"].duplicated().any():
+            raise ValueError("hourly AQI cache requires unique valid UTC timestamps")
+        return hourly
 
     frames = []
     for year in config.YEARS:
         url = config.OPENMETEO_AQI_URL.format(
             lat=config.DC_LAT, lon=config.DC_LON, year=year
         )
-        dest = _download(url, config.RAW / f"aqi_hourly_{year}.json")
+        dest = _download(url, config.RAW / f"aqi_hourly_utc_{year}.json")
         h = json.loads(Path(dest).read_text())["hourly"]
         frames.append(
             pd.DataFrame(
-                {"ts_local": h["time"], "aqi_hourly": h["us_aqi"], "pm25": h["pm2_5"]}
+                {
+                    "ts_utc": pd.to_datetime(h["time"], unit="s", utc=True).tz_localize(
+                        None
+                    ),
+                    "aqi_hourly": h["us_aqi"],
+                    "pm25": h["pm2_5"],
+                }
             )
         )
 
     hourly = pd.concat(frames, ignore_index=True)
-    hourly["ts_local"] = pd.to_datetime(hourly["ts_local"])
+    hourly["ts_utc"] = hourly["ts_utc"].astype("datetime64[ns]")
+    if hourly["ts_utc"].isna().any() or hourly["ts_utc"].duplicated().any():
+        raise ValueError("hourly AQI source requires unique valid UTC timestamps")
+    hourly = hourly.sort_values("ts_utc").reset_index(drop=True)
     _write_csv(hourly, cache)
     return hourly

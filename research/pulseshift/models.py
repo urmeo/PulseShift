@@ -36,7 +36,7 @@ class ClimatologyBaseline:
     def predict_proba(self, df: pd.DataFrame) -> np.ndarray:
         idx = list(zip(*[df[k] for k in self.keys]))
         p = np.array([self.rates_.get(k, self.prior_) for k in idx])
-        return np.column_stack([1.0 - p, p])  # sklearn-style (n, 2)
+        return np.column_stack([1.0 - p, p])
 
 
 def build_logistic(balanced: bool = True) -> Pipeline:

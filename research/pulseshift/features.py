@@ -7,9 +7,10 @@ import pandas as pd
 
 
 def heat_index_f(temp_f, humidity) -> np.ndarray:
-    """NWS Rothfusz heat index; identity below 80F / 40% RH."""
+    """NWS heat index, including the simple screen and humidity adjustments."""
     t = np.asarray(temp_f, dtype=float)
     rh = np.asarray(humidity, dtype=float)
+    simple = (0.5 * (t + 61.0 + (t - 68.0) * 1.2 + rh * 0.094) + t) / 2
     hi = (
         -42.379
         + 2.04901523 * t
@@ -21,8 +22,13 @@ def heat_index_f(temp_f, humidity) -> np.ndarray:
         + 0.00085282 * t * rh**2
         - 0.00000199 * t**2 * rh**2
     )
-    mild = (t < 80) | (rh < 40)
-    return np.where(mild, t, np.round(hi, 1))
+    low = (rh < 13) & (t >= 80) & (t <= 112)
+    high = (rh > 85) & (t >= 80) & (t <= 87)
+    hi -= np.where(
+        low, (13 - rh) / 4 * np.sqrt(np.maximum(0, (17 - np.abs(t - 95)) / 17)), 0
+    )
+    hi += np.where(high, (rh - 85) / 10 * (87 - t) / 5, 0)
+    return np.round(np.where(simple < 80, simple, hi), 1)
 
 
 def season_of(month: pd.Series) -> pd.Series:
