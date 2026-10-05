@@ -56,6 +56,12 @@ function risk(input) {
   return 1 / (1 + Math.exp(-z));
 }
 
+function percent(p) {
+  if (p < 0.01) return "<1%";
+  if (p > 0.99) return ">99%";
+  return Math.round(p * 100) + "%";
+}
+
 function riskBand(p) {
   if (p < 0.15) return { label: "Low", cls: "low" };
   if (p < 0.35) return { label: "Moderate", cls: "moderate" };
@@ -93,7 +99,7 @@ function update() {
     $("result").hidden = false;
     $("error").textContent = "";
     $("risk").className = "risk " + b.cls;
-    $("pct").textContent = Math.round(p * 100) + "%";
+    $("pct").textContent = percent(p);
     $("band").textContent = b.label + (excluded ? "" : " demand suppression likelihood");
     $("reco").textContent = excluded
       ? `Study limits: heat index below ${M.safety.heat_unsafe_f}°F and AQI below ${M.safety.aqi_unsafe}. Follow official advisories.`
@@ -205,7 +211,7 @@ async function liveWeather() {
       timeZone: TZ, weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZoneName: "short",
     }).format(new Date(best.epoch * 1000));
     $("besthour").textContent = best
-      ? `Lowest estimated suppression within study limits: ${stamp} (${Math.round(best.risk * 100)}%, AQI ${Math.round(best.aqi)}).`
+      ? `Lowest estimated suppression within study limits: ${stamp} (${percent(best.risk)}, AQI ${Math.round(best.aqi)}).`
       : "No complete daytime forecast hour meets the study's heat and AQI limits.";
     $("forecastnote").textContent = "Open-Meteo hourly weather + CAMS AQI forecast; visibility capped at the training sensor's 10 mi limit. Smoke/haze uses your checkbox setting. Missing hours are excluded.";
     btn.textContent = "DC forecast loaded";

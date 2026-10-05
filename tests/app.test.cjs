@@ -279,4 +279,11 @@ test("displayed probability describes aggregate demand and threshold exceedance"
   assert.equal(e.band.textContent, "Study threshold exceeded");
   assert.match(e.reco.textContent, /official advisories/);
   assert.match(e.modelnote.textContent, /not personal exercise risk/);
+  assert.equal(run("percent(0)"), "<1%");
+  assert.equal(run("percent(0.009)"), "<1%");
+  assert.equal(run("percent(0.01)"), "1%");
+  assert.equal(run("percent(0.5)"), "50%");
+  assert.equal(run("percent(0.99)"), "99%");
+  assert.equal(run("percent(0.991)"), ">99%");
+  assert.equal(run("percent(1)"), ">99%");
 });

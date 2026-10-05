@@ -37,7 +37,7 @@ def calibration_fit(y_true, y_prob) -> tuple[float, float]:
     y_true, y_prob = binary_predictions(y_true, y_prob)
     if len(np.unique(y_true)) != 2:
         raise ValueError("calibration fitting requires both label classes")
-    model = LogisticRegression(penalty=None, max_iter=2000)
+    model = LogisticRegression(C=np.inf, max_iter=2000)
     model.fit(_logit(y_prob).reshape(-1, 1), y_true)
     return float(model.coef_[0][0]), float(model.intercept_[0])
 
