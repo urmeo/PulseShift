@@ -8,7 +8,7 @@ Python 3.12+ and Node 22; from the repository root:
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r research/requirements.txt -r research/requirements-dev.txt
-PYTHONPATH=research pytest research/tests --cov=pulseshift --cov-branch
+PYTHONPATH=research pytest research/tests --cov=pulseshift --cov-branch --cov-fail-under=60
 node --test tests/app.test.cjs
 ruff check research
 ruff format --check research

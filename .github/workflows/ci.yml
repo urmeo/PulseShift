@@ -68,7 +68,11 @@ jobs:
       - name: Run tests with coverage
         run: |
           cd research
-          PYTHONPATH=. pytest tests/ -q --cov=pulseshift --cov-branch --cov-report=term-missing --cov-report=xml
+          PYTHONPATH=. pytest tests/ -q --cov=pulseshift --cov-branch --cov-fail-under=60 --cov-report=term-missing --cov-report=xml
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38  # v6
+        if: matrix.python-version == '3.12'
+        with:
+          node-version: "22"
       - name: Reproduce analysis and serving model
         if: matrix.python-version == '3.12'
         run: |
