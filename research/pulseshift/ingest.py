@@ -19,13 +19,27 @@ def _download(url: str, dest) -> Path:
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_name(dest.name + ".part")
     req = urllib.request.Request(url, headers={"User-Agent": "pulseshift-research/1.0"})
-    with urllib.request.urlopen(req, timeout=120) as response, open(tmp, "wb") as out:
-        while True:
-            chunk = response.read(1 << 20)
-            if not chunk:
-                break
-            out.write(chunk)
-    tmp.replace(dest)
+    try:
+        with (
+            urllib.request.urlopen(req, timeout=120) as response,
+            open(tmp, "wb") as out,
+        ):
+            length = response.headers.get("Content-Length")
+            expected = int(length) if length is not None else None
+            received = 0
+            while True:
+                chunk = response.read(1 << 20)
+                if not chunk:
+                    break
+                out.write(chunk)
+                received += len(chunk)
+            if expected is not None and received != expected:
+                raise RuntimeError(
+                    f"Incomplete download: received {received} of {expected} bytes"
+                )
+        tmp.replace(dest)
+    finally:
+        tmp.unlink(missing_ok=True)
     return dest
 
 
