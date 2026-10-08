@@ -135,6 +135,9 @@ function forecastInputs(weather, air, smoke, now = Date.now()) {
       !Array.isArray(a.time) || !Array.isArray(a.us_aqi) || a.time.length !== a.us_aqi.length) {
     throw new Error("Incomplete forecast response.");
   }
+  if (new Set(h.time).size !== h.time.length || new Set(a.time).size !== a.time.length) {
+    throw new Error("Ambiguous forecast response: duplicate timestamps.");
+  }
   const aqiByTime = new Map(a.time.map((t, i) => [t, a.us_aqi[i]]));
   const start = Math.floor(now / 3600000) * 3600;
   const rows = [];

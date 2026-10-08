@@ -287,3 +287,45 @@ test("displayed probability describes aggregate demand and threshold exceedance"
   assert.equal(run("percent(0.991)"), ">99%");
   assert.equal(run("percent(1)"), ">99%");
 });
+
+test("conflicting AQI timestamps are rejected regardless of record order", () => {
+  const { context, run } = app();
+  for (const values of [[200, 42], [42, 200]]) {
+    const data = forecast();
+    data.air.hourly.time = [currentEpoch, currentEpoch, currentEpoch + 3600, currentEpoch + 7200];
+    data.air.hourly.us_aqi = [...values, 70, 160];
+    installForecast(context, data);
+    assert.throws(() => run("forecastInputs(weather, air, false, now)"), /duplicate timestamps/);
+  }
+});
+
+test("conflicting weather timestamps are rejected before ranking", () => {
+  const { context, run } = app();
+  const data = forecast();
+  data.weather.hourly.time = [...data.weather.hourly.time];
+  for (const field of Object.keys(data.weather.hourly)) {
+    data.weather.hourly[field].splice(1, 0, data.weather.hourly[field][0]);
+  }
+  data.weather.hourly.temperature_2m[1] = 100;
+  data.weather.hourly.relative_humidity_2m[1] = 39;
+  installForecast(context, data);
+  assert.throws(() => run("forecastInputs(weather, air, false, now)"), /duplicate timestamps/);
+  for (const field of Object.keys(data.weather.hourly)) data.weather.hourly[field].reverse();
+  assert.throws(() => run("forecastInputs(weather, air, false, now)"), /duplicate timestamps/);
+});
+
+test("ambiguous forecasts preserve manual inputs and do not publish a recommendation", async () => {
+  const data = forecast();
+  data.air.hourly.time = [...data.air.hourly.time, currentEpoch];
+  data.air.hourly.us_aqi.push(200);
+  const { elements: e, run } = app(fetchForecast(data));
+  e.temp.value = "91";
+  e.aqi.value = "55";
+  await run("liveWeather()");
+  assert.equal(e.temp.value, "91");
+  assert.equal(e.aqi.value, "55");
+  assert.match(e.error.textContent, /duplicate timestamps/);
+  assert.equal(e.besthour.textContent, "");
+  assert.equal(e.forecastnote.textContent, "");
+  assert.equal(e.live.textContent, "Load DC forecast");
+});
