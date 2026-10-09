@@ -8,6 +8,5 @@ url: "https://github.com/urmeo/PulseShift"
 repository-code: "https://github.com/urmeo/PulseShift"
 license: MIT
 authors:
-  - family-names: Bose
-    given-names: Urme
+  - given-names: Urme
     alias: urmeo
